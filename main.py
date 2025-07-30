@@ -12,7 +12,6 @@ colours = {"WHITE":"#d9d9d9",
            "LIGHT COAL":"#353a49",
            "DARK COAL":"#2c2f3b",}
 
-
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Minespeeder")
 
