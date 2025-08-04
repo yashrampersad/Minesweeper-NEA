@@ -1,11 +1,12 @@
 import pygame
-import gui_elements as ui
+import gui_elements as gui
 
 pygame.init()
 
 SCREEN_WIDTH = 1600
 SCREEN_HEIGHT = 900
 
+# making the colour palette easily accessible through a dictionary and using memorable names
 colours = {"WHITE":"#d9d9d9",
            "LIGHT SILVER":"#717d9f",
            "DARK SILVER":"#667192",
@@ -17,13 +18,16 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Minespeeder")
 
 # game loop
-while True:
+running = True
+while running:
 
     screen.fill(colours["GREY"])
     
     # event handler for actions like mouse clicks
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
+            running = False
     
     pygame.display.update()
+
+pygame.quit()
