@@ -9,55 +9,55 @@ PROGRESS_BAR_HEIGHT = 50
 CORNER_ROUNDING = 40
 TEXT_PADDING = 25
 
-main_font = pygame.font.SysFont("couriernew", FONT_SIZE, bold=True) # set font and text size
-number_font = pygame.font.SysFont("arial", FONT_SIZE, bold=True)
-
 class Label(): # for displaying text
-    def __init__(self, colour, text, text_colour):
+    def __init__(self, colour, text, text_colour, scale):
         self.colour = colour
         self.text = text
         self.text_colour = text_colour
+        self.scale = scale
+
+        self.font = pygame.font.SysFont("couriernew", round(FONT_SIZE*self.scale), bold=True) # set font and text size
+        self.rendered_text = self.font.render(self.text, True, self.text_colour) # render the text in the correct font and style
+        self.box = pygame.Rect(0,0, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale)) # create a quick render of the box so that any programs can use the width and height in calculations
 
     def draw(self, surface, x, y):
-        text = main_font.render(self.text, True, self.text_colour) # render the text in the correct font and style
-        pygame.draw.rect(surface, self.colour, (x, y, text.get_width()+TEXT_PADDING*2, text.get_height()+TEXT_PADDING*2), border_radius=CORNER_ROUNDING) # draw the box the same width as the text with some padding
-        surface.blit(text, (x+TEXT_PADDING,y+TEXT_PADDING))
+        self.box = pygame.Rect(x, y, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale))
+        pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale)) # draw the box the same width as the text with some padding
+        surface.blit(self.rendered_text, (round(x+TEXT_PADDING*self.scale),round(y+TEXT_PADDING*self.scale)))
 
 class Button(Label): # for clickable buttons that display text
-    def __init__(self, colour, hover_colour, text, text_colour):
-        super().__init__(colour, text, text_colour)
+    def __init__(self, colour, hover_colour, text, text_colour, scale):
+        super().__init__(colour, text, text_colour, scale)
         self.hover_colour = hover_colour
-        self.hitbox = None
         self.highlighted = False
 
-    # using polymorphism to change the draw method to define a hitbox we can check for collisions with
+    # using polymorphism to change the draw method to draw differently depending on whether the mouse is hovering over
     def draw(self, surface, x, y):
-        text = main_font.render(self.text, True, self.text_colour)
-        self.hitbox = pygame.Rect(x, y, text.get_width()+TEXT_PADDING*2, text.get_height()+TEXT_PADDING*2)
+        self.rendered_text = self.font.render(self.text, True, self.text_colour)
+        self.box = pygame.Rect(x, y, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale))
         # change colour if the cursor is hovering over
         if self.highlighted:
-            pygame.draw.rect(surface, self.hover_colour, self.hitbox, border_radius=CORNER_ROUNDING)
+            pygame.draw.rect(surface, self.hover_colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
         else:
-            pygame.draw.rect(surface, self.colour, self.hitbox, border_radius=CORNER_ROUNDING)
-        surface.blit(text, (x+TEXT_PADDING,y+TEXT_PADDING))
+            pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
+        surface.blit(self.rendered_text, (round(x+TEXT_PADDING*self.scale),round(y+TEXT_PADDING*self.scale)))
     
     def isClicked(self, event):
         mouse_pos = pygame.mouse.get_pos()
-        # first check if mouse is hovering over, regardless of clicks
-        if self.hitbox.collidepoint(mouse_pos):
-            self.highlighted = True
+        if self.box.collidepoint(mouse_pos):
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 return True # return whether or not there is was a click that frame
             else:
+                self.highlighted = True # if the mouse hovers over without clicking, highlight the box
                 return False
         else:
             self.highlighted = False
             return False
 
 class StateButton(Button): # for buttons that cycle through different values eg, beginner, intermediate, expert, custom
-    def __init__(self, colour, hover_colour, states, text_colour):
+    def __init__(self, colour, hover_colour, states, text_colour, scale):
         self.current_state = 0
-        super().__init__(colour, hover_colour, states[self.current_state], text_colour)
+        super().__init__(colour, hover_colour, states[self.current_state], text_colour, scale)
         self.states = states
         # the states are in a given array, and self.current_state points to the current state
 
@@ -68,26 +68,26 @@ class StateButton(Button): # for buttons that cycle through different values eg,
         return self.states[self.current_state]
 
 class InputBox(Button): # for the user to input text
-    def __init__(self, colour, hover_colour, default_text, text_colour):
+    def __init__(self, colour, hover_colour, default_text, text_colour, scale):
         self.default_text = default_text
         self.current_text = ""
         self.activated = False
-        super().__init__(colour, hover_colour, default_text, text_colour)
+        super().__init__(colour, hover_colour, default_text, text_colour, scale)
 
     def draw(self, surface, x, y):
-        text = main_font.render(self.text, True, self.text_colour)
-        default_text = main_font.render(self.default_text, True, self.text_colour)
+        text = self.font.render(self.text, True, self.text_colour)
+        default_text = self.font.render(self.default_text, True, self.text_colour)
         if text.get_width() < default_text.get_width():
             width = default_text.get_width()
         else:
             width = text.get_width()
-        self.hitbox = pygame.Rect(x, y, width+TEXT_PADDING*2, text.get_height()+TEXT_PADDING*2)
+        self.box = pygame.Rect(x, y, round(width+TEXT_PADDING*2*self.scale), round(text.get_height()+TEXT_PADDING*2*self.scale))
         # change colour if the cursor is hovering over
         if self.highlighted:
-            pygame.draw.rect(surface, self.hover_colour, self.hitbox, border_radius=CORNER_ROUNDING)
+            pygame.draw.rect(surface, self.hover_colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
         else:
-            pygame.draw.rect(surface, self.colour, self.hitbox, border_radius=CORNER_ROUNDING)
-        surface.blit(text, (x+TEXT_PADDING,y+TEXT_PADDING))
+            pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
+        surface.blit(text, (round(x+TEXT_PADDING*self.scale),round(y+TEXT_PADDING*self.scale)))
 
     def update(self, event):
         mouse_pos = pygame.mouse.get_pos()
@@ -96,7 +96,7 @@ class InputBox(Button): # for the user to input text
         if not self.activated:
             self.highlighted = False
             # once the user clicks on the box it becomes activated and they can enter text
-            if self.hitbox.collidepoint(mouse_pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.box.collidepoint(mouse_pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self.activated = True
 
         elif self.activated:
@@ -114,7 +114,7 @@ class InputBox(Button): # for the user to input text
                     if event.key not in [pygame.K_RETURN, pygame.K_BACKSPACE, pygame.K_LCTRL, pygame.K_RCTRL]:
                         self.current_text += event.unicode
             # if they click outside of the box, deactivate typing but do not return what has been typed
-            elif not self.hitbox.collidepoint(mouse_pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            elif not self.box.collidepoint(mouse_pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self.current_text = ""
                 self.activated = False
                 self.highlighted = False
@@ -130,14 +130,15 @@ class InputBox(Button): # for the user to input text
 
 
 class ProgressBar(): # to display a progress bar that can change during runtime
-    def __init__(self, max_width, colour, outline_colour):
+    def __init__(self, max_width, colour, outline_colour, scale):
         self.max_width = max_width
         self.colour = colour
         self.outline_colour = outline_colour
+        self.scale = scale
 
     def draw(self, surface, x, y, percentage):
-        pygame.draw.rect(surface, self.outline_colour, (x, y, self.max_width, PROGRESS_BAR_HEIGHT)) # draw outline
-        pygame.draw.rect(surface, self.colour, (x, y, self.max_width*percentage, PROGRESS_BAR_HEIGHT)) # draw progress using the given float value for the percentage
+        pygame.draw.rect(surface, self.outline_colour, (x, y, round(self.max_width*self.scale), round(PROGRESS_BAR_HEIGHT*self.scale))) # draw outline
+        pygame.draw.rect(surface, self.colour, (x, y, round(self.max_width*percentage*self.scale), round(PROGRESS_BAR_HEIGHT*self.scale))) # draw progress using the given float value for the percentage
 
 
 class UISquare(): # a single square on the minesweeper board to detect clicks for the minesweeper section
@@ -148,32 +149,33 @@ class UISquare(): # a single square on the minesweeper board to detect clicks fo
         self.hover_colour = hover_colour
         self.covered_colour = covered_colour
         self.covered_hover_colour = covered_hover_colour
-        self.hitbox = None
+        self.box = None
         self.highlighted = False
 
     # number and number colour are given here intead of instantiation as they can change during runtime
     def draw(self, surface, x, y, width, number, number_colour, is_revealed, is_flagged):
-        self.hitbox = pygame.Rect(x, y, width, width)
+        font = pygame.font.SysFont("arial", round((width/5)*4), bold=True)
+        self.box = pygame.Rect(x, y, width, width)
         # draw differently depending on whether the square is revealed
         if is_revealed:
             if self.highlighted:
-                pygame.draw.rect(surface, self.hover_colour, self.hitbox)
+                pygame.draw.rect(surface, self.hover_colour, self.box)
             else:
-                pygame.draw.rect(surface, self.colour, self.hitbox)
-            text = number_font.render(number, True, number_colour)
+                pygame.draw.rect(surface, self.colour, self.box)
+            text = font.render(number, True, number_colour)
             surface.blit(text, (x+abs((width-text.get_width())//2),y+abs((width-text.get_height())//2)))
         else:
             if self.highlighted:
-                pygame.draw.rect(surface, self.covered_hover_colour, self.hitbox)
+                pygame.draw.rect(surface, self.covered_hover_colour, self.box)
             else:
-                pygame.draw.rect(surface, self.covered_colour, self.hitbox)
+                pygame.draw.rect(surface, self.covered_colour, self.box)
             if is_flagged:
                 surface.blit(pygame.transform.smoothscale(pygame.image.load("flag.png").convert_alpha(), (width, width)), (x,y))
 
     def registerClick(self, event):
         mouse_pos = pygame.mouse.get_pos()
         # first check if mouse is hovering over, regardless of clicks
-        if self.hitbox.collidepoint(mouse_pos):
+        if self.box.collidepoint(mouse_pos):
             self.highlighted = True
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # in pygame, left click is 1, right click is 3
