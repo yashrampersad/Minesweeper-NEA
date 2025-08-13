@@ -1,11 +1,15 @@
 import pygame
-import gui_elements as gui # import the GUI core element classes from the separate file 
-import screens as scr
 
 pygame.init()
 
-SCREEN_WIDTH = 1600
+SCREEN_WIDTH = 1800
 SCREEN_HEIGHT = 900
+
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+import screens as scr
+
+
 
 pygame.key.set_repeat(500, 40) # allow the ability to hold keys like backspace to input them multiple times. 500 and 40 are used as these are the standard millisecond timings for key repeats across many operating systems
 
@@ -26,13 +30,13 @@ colours = {"WHITE":"#d9d9d9",
 # ui_square = gui.UISquare((0,0), colours["DARK COAL"], colours["LIGHT COAL"], colours["DARK SILVER"], colours["LIGHT SILVER"])
 
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Minespeeder")
 
+pygame.display.set_caption("Minespeeder")
+clock = pygame.time.Clock()
 
 title_screen = scr.MainMenu(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 available_lobbies = ["Yash's Lobby", "Guest's Lobby"]
-finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT, available_lobbies)
+finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 lobby_screen = scr.Lobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, "Test Lobby")
 
 state = "MAIN"
@@ -53,9 +57,9 @@ while running:
     if state == "MAIN":
         state = title_screen.run()
     elif state == "LOBBY":
-        state = lobby_screen.run()
+        state = lobby_screen.run((16, 30))
     elif state == "BROADCAST":
-        state = finding_lobbies_screen.run()
+        to_draw, state = finding_lobbies_screen.run(available_lobbies)
     elif state == "QUIT":
         running = False
 
@@ -83,7 +87,9 @@ while running:
 
         if event.type == pygame.QUIT:
             running = False
-    
+
     pygame.display.update()
+
+    clock.tick(60)
 
 pygame.quit()

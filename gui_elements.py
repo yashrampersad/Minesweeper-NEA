@@ -9,6 +9,9 @@ PROGRESS_BAR_HEIGHT = 50
 CORNER_ROUNDING = 40
 TEXT_PADDING = 25
 
+medium_font = pygame.font.SysFont("arial", round((43/5)*4), bold=True)
+medium_flag = pygame.transform.smoothscale(pygame.image.load("flag.png").convert_alpha(), (43, 43))
+
 class Label(): # for displaying text
     def __init__(self, colour, text, text_colour, scale):
         self.colour = colour
@@ -46,6 +49,7 @@ class Button(Label): # for clickable buttons that display text
         mouse_pos = pygame.mouse.get_pos()
         if self.box.collidepoint(mouse_pos):
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                self.highlighted = False
                 return True # return whether or not there is was a click that frame
             else:
                 self.highlighted = True # if the mouse hovers over without clicking, highlight the box
@@ -154,7 +158,6 @@ class UISquare(): # a single square on the minesweeper board to detect clicks fo
 
     # number and number colour are given here intead of instantiation as they can change during runtime
     def draw(self, surface, x, y, width, number, number_colour, is_revealed, is_flagged):
-        font = pygame.font.SysFont("arial", round((width/5)*4), bold=True)
         self.box = pygame.Rect(x, y, width, width)
         # draw differently depending on whether the square is revealed
         if is_revealed:
@@ -162,7 +165,7 @@ class UISquare(): # a single square on the minesweeper board to detect clicks fo
                 pygame.draw.rect(surface, self.hover_colour, self.box)
             else:
                 pygame.draw.rect(surface, self.colour, self.box)
-            text = font.render(number, True, number_colour)
+            text = medium_font.render(number, True, number_colour)
             surface.blit(text, (x+abs((width-text.get_width())//2),y+abs((width-text.get_height())//2)))
         else:
             if self.highlighted:
@@ -170,7 +173,7 @@ class UISquare(): # a single square on the minesweeper board to detect clicks fo
             else:
                 pygame.draw.rect(surface, self.covered_colour, self.box)
             if is_flagged:
-                surface.blit(pygame.transform.smoothscale(pygame.image.load("flag.png").convert_alpha(), (width, width)), (x,y))
+                surface.blit(medium_flag, (x,y))
 
     def registerClick(self, event):
         mouse_pos = pygame.mouse.get_pos()
