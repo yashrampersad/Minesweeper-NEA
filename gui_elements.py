@@ -24,6 +24,7 @@ class Label(): # for displaying text
         self.box = pygame.Rect(0,0, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale)) # create a quick render of the box so that any programs can use the width and height in calculations
 
     def draw(self, surface, x, y):
+        self.rendered_text = self.font.render(self.text, True, self.text_colour) # render the text in the correct font and style
         self.box = pygame.Rect(x, y, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale))
         pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale)) # draw the box the same width as the text with some padding
         surface.blit(self.rendered_text, (round(x+TEXT_PADDING*self.scale),round(y+TEXT_PADDING*self.scale)))
@@ -130,6 +131,7 @@ class InputBox(Button): # for the user to input text
     
     def reset(self, new_default): # allows the InputBox to be reset or reset with a new default message if needed
         self.default_text = new_default
+        self.text = self.default_text
         self.current_text = ""
 
 

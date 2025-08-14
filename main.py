@@ -57,9 +57,9 @@ while running:
     if state == "MAIN":
         state = title_screen.run()
     elif state == "LOBBY":
-        state = lobby_screen.run((16, 30))
+        state = lobby_screen.run()
     elif state == "BROADCAST":
-        to_draw, state = finding_lobbies_screen.run(available_lobbies)
+        state = finding_lobbies_screen.run(available_lobbies)
     elif state == "QUIT":
         running = False
 
