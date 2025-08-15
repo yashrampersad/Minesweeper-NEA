@@ -26,7 +26,8 @@ class Label(): # for displaying text
     def draw(self, surface, x, y):
         self.rendered_text = self.font.render(self.text, True, self.text_colour) # render the text in the correct font and style
         self.box = pygame.Rect(x, y, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale))
-        pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale)) # draw the box the same width as the text with some padding
+        if self.colour is not None:
+            pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale)) # draw the box the same width as the text with some padding
         surface.blit(self.rendered_text, (round(x+TEXT_PADDING*self.scale),round(y+TEXT_PADDING*self.scale)))
 
 class Button(Label): # for clickable buttons that display text
