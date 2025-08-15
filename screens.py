@@ -25,20 +25,23 @@ class MainMenu(Base):
         self.subtitle = gui.Label(colours["GREY"], "a real-time minesweeper racer", colours["WHITE"], 0.7)
         self.create_lobby = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Create Lobby", colours["GREY"], 1.2)
         self.join_lobby = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Join Lobby", colours["GREY"], 1.2)
+        self.quit = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit", colours["GREY"], 1.2)
 
     def drawElements(self):
         self.title.draw(self.surface, (self.screen_width//2)-self.title.box.width//2, 100)
         self.subtitle.draw(self.surface, (self.screen_width//2), self.title.box.height-40)
         self.create_lobby.draw(self.surface, (self.screen_width//2)-self.create_lobby.box.width//2, 450)
         self.join_lobby.draw(self.surface, (self.screen_width//2)-self.join_lobby.box.width//2, 600)
+        self.quit.draw(self.surface, (self.screen_width//2)-self.quit.box.width//2, 750)
 
     def handleEvents(self):
         for event in pygame.event.get():
             if self.create_lobby.isClicked(event):
                 return "LOBBY"
-            elif self.join_lobby.isClicked(event):
+            if self.join_lobby.isClicked(event):
                 return "BROADCAST"
-
+            if self.quit.isClicked(event):
+                return "QUIT"
             if event.type == pygame.QUIT:
                 return "QUIT"
         return "MAIN"
@@ -174,9 +177,9 @@ class Lobby(Base):
         for i in range(self.board_dimensions[0]):
             for j in range(self.board_dimensions[1]):
                 if (i+j)%2 == 0:
-                    square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["WHITE"], colours["LIGHT SILVER"], colours["WHITE"])
+                    square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
                 else:
-                    square = gui.UISquare((j, i), colours["DARK COAL"], colours["WHITE"], colours["DARK SILVER"], colours["WHITE"])
+                    square = gui.UISquare((j, i), colours["DARK COAL"], colours["DARK SILVER"])
                 self.board_squares.append(square)
 
     def drawBoard(self):
@@ -241,7 +244,11 @@ class Lobby(Base):
                     self.num_games.reset(self.num_games.default_text)
 
             if self.ready_button.isClicked(event):
-                return "MAIN"
+                global board_magnification
+                board_magnification = self.board_magnification
+                global board_dimensions
+                board_dimensions = self.board_dimensions
+                return "GAME"
 
             if self.quit_button.isClicked(event):
                 return "MAIN"
@@ -255,55 +262,120 @@ class Lobby(Base):
                 return "QUIT"
         return "LOBBY"
 
-# class Game(Base):
-#     def __init__(self, surface, screen_width, screen_height):
-#         super().__init__(surface, screen_width, screen_height)
-#         self.board_dimensions = board_dimensions
+class Game(Base):
+    def __init__(self, surface, screen_width, screen_height):
+        super().__init__(surface, screen_width, screen_height)
+        self.board_dimensions = board_dimensions
+        self.board_magnification = board_magnification
+        self.board_squares = []
+        self.finished = False
 
-#         self.board_magnification = "Medium"
-#         self.magnification_button = gui.StateButton(colours["WHITE"], colours["LIGHT SILVER"], ["Medium", "Large", "Small"], colours["GREY"], 0.6)
-#         self.magnification_label = gui.Label(colours["GREY"], "board magnification", colours["WHITE"], 0.6)
-#         self.setBoard()
+        self.magnification_button = gui.StateButton(colours["WHITE"], colours["LIGHT SILVER"], ["Medium", "Large", "Small"], colours["GREY"], 0.6)
+        self.magnification_button.current_state = self.magnification_button.states.index(self.board_magnification)
+        self.magnification_button.text = self.board_magnification
+        self.magnification_label = gui.Label(colours["GREY"], "board magnification", colours["WHITE"], 0.6)
+        self.setBoard()
         
-#     def run(self):
-#         self.drawElements()
-#         return self.handleEvents()
+    def run(self, standings):
+        self.drawElements(standings)
+        return self.handleEvents()
     
-#     def drawElements(self):
-#         self.magnification_label.draw(self.surface, 5, self.screen_height-self.magnification_label.box.height-10)
-#         self.magnification_button.draw(self.surface, self.magnification_label.box.width+10, self.screen_height-self.magnification_button.box.height-10)
+    def drawElements(self, standings):
 
-#     def setBoard(self):
-#         self.board_squares.clear()
-#         for i in range(self.board_dimensions[0]):
-#             for j in range(self.board_dimensions[1]):
-#                 if (i+j)%2 == 0:
-#                     square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["WHITE"], colours["LIGHT SILVER"], colours["WHITE"])
-#                 else:
-#                     square = gui.UISquare((j, i), colours["DARK COAL"], colours["WHITE"], colours["DARK SILVER"], colours["WHITE"])
-#                 self.board_squares.append(square)
+        y = 190
+        x = 60
+        self.finished = True
+        for i, (key, value) in enumerate(standings.items()):
+            if value < 1:
+                self.finished = False
+            num = gui.Label(None, str(i+1),  colours["WHITE"], 0.6)
+            num.draw(self.surface, 10, y)
+            bar = gui.ProgressBar(500, colours["DARK SILVER"], colours["LIGHT COAL"], 0.6)
+            bar.draw(self.surface, x, y, value)
+            name = gui.Label(None, key, colours["WHITE"], 0.6)
+            name.draw(self.surface, x, y)
+            y += 80
 
-#     def drawBoard(self):
-#         if self.board_magnification == "Small":
-#             square_width = 35
-#         elif self.board_magnification == "Medium":
-#             square_width = 45
-#         elif self.board_magnification == "Large":
-#             square_width = 65
-#         current_square = 0
-#         y = 180
-#         for i in range(self.board_dimensions[0]):
-#             x = (self.screen_width//2) - square_width*self.board_dimensions[1]//2
-#             for j in range(self.board_dimensions[1]):
-#                 self.board_squares[current_square].draw(self.surface, x, y, square_width, "1", colours["WHITE"], False, False)
-#                 current_square += 1
-#                 x += square_width
-#             y += square_width
+        self.magnification_label.draw(self.surface, 5, self.screen_height-self.magnification_label.box.height-10)
+        self.magnification_button.draw(self.surface, self.magnification_label.box.width+10, self.screen_height-self.magnification_button.box.height-10)
+        self.drawBoard()
 
-#     def handleEvents(self, event):
-#         self.board_magnification = self.magnification_button.updateState(event)
+    def setBoard(self):
+        self.board_squares.clear()
+        for i in range(self.board_dimensions[0]):
+            for j in range(self.board_dimensions[1]):
+                if (i+j)%2 == 0:
+                    square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
+                else:
+                    square = gui.UISquare((j, i), colours["DARK COAL"], colours["DARK SILVER"])
+                self.board_squares.append(square)
+
+    def drawBoard(self):
+        if self.board_magnification == "Small":
+            square_width = 35
+        elif self.board_magnification == "Medium":
+            square_width = 45
+        elif self.board_magnification == "Large":
+            square_width = 65
+        current_square = 0
+        y = 180
+        for i in range(self.board_dimensions[0]):
+            x = (self.screen_width//2) - square_width*self.board_dimensions[1]//2
+            for j in range(self.board_dimensions[1]):
+                self.board_squares[current_square].draw(self.surface, x, y, square_width, "1", colours["WHITE"], False, False)
+                current_square += 1
+                x += square_width
+            y += square_width
+
+    def handleEvents(self):
+        for event in pygame.event.get():
+            self.board_magnification = self.magnification_button.updateState(event)
+
+            for square in self.board_squares:
+                result = square.registerClick(event)
 
 
-#         if event.type == pygame.QUIT:
-#                 return "QUIT"
-#         return "GAME"
+            if event.type == pygame.QUIT:
+                    return "QUIT"
+        if self.finished:
+                return "STANDINGS"
+        return "GAME"
+    
+class FinalStandings(Base):
+    def __init__(self, surface, screen_width, screen_height):
+        super().__init__(surface, screen_width, screen_height)
+        self.title = gui.Label(None, "Game Finished!", colours["WHITE"], 2)
+        self.continue_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Continue to lobby", colours["GREY"], 1)
+        self.quit_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit to Main Menu", colours["GREY"], 1)
+
+
+    def run(self, standings):
+        self.drawElements(standings)
+        return self.handleEvents()
+    
+    def drawElements(self, standings):
+        self.title.draw(self.surface, -20, -30)
+
+        y = 190
+        x = 500
+        for i, (key) in enumerate(standings.keys()):
+            num = gui.Label(None, str(i+1),  colours["WHITE"], 1)
+            num.draw(self.surface, x-50, y)
+            name = gui.Label(None, key, colours["WHITE"], 1)
+            name.draw(self.surface, x, y)
+            y += 80
+
+        self.continue_button.draw(self.surface, self.screen_width//2-self.continue_button.box.width//2, y+50)
+        self.quit_button.draw(self.surface, self.screen_width//2-self.quit_button.box.width//2, y+200)
+
+    def handleEvents(self):
+        for event in pygame.event.get():
+            if self.continue_button.isClicked(event):
+                return "LOBBY"
+            
+            if self.quit_button.isClicked(event):
+                return "MAIN"
+
+            if event.type == pygame.QUIT:
+                return "QUIT"
+        return "STANDINGS"

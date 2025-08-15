@@ -1,5 +1,7 @@
 import pygame
 
+import random
+
 pygame.init()
 
 SCREEN_WIDTH = 1800
@@ -30,8 +32,11 @@ available_lobbies = ["Yash's Lobby", "Guest's Lobby"]
 finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 lobby_screen = scr.Lobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, "Test Lobby")
 player_names = ["Yash", "Guest", "Best_player67"]
+standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
+standings_screen = scr.FinalStandings(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 state = "MAIN"
+game_started = False
 
 # game loop
 running = True
@@ -45,8 +50,23 @@ while running:
         state = lobby_screen.run(player_names)
     elif state == "BROADCAST":
         state = finding_lobbies_screen.run(available_lobbies)
+    elif state == "GAME":
+        if not game_started:
+            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+            game_started = True
+        state = game_screen.run(standings)
+        for key in standings.keys():
+            if standings[key] < 1:
+                x = random.randint(0,10)/(10**random.randint(3,6))
+                standings[key] += x
+                if standings[key] > 1:
+                    standings[key] = 1
+        standings = dict(sorted(standings.items(), key=lambda item: item[1], reverse=True))
+    elif state == "STANDINGS":
+        state = standings_screen.run(standings)
     elif state == "QUIT":
         running = False
+
 
     pygame.display.update()
 

@@ -5,7 +5,7 @@ pygame.init()
 # setting various arbitrary values used later as constants so that they can be easily tweaked if needed
 FONT_SIZE = 40
 LABEL_HEIGHT = 50
-PROGRESS_BAR_HEIGHT = 50
+PROGRESS_BAR_HEIGHT = 100
 CORNER_ROUNDING = 40
 TEXT_PADDING = 25
 
@@ -144,18 +144,18 @@ class ProgressBar(): # to display a progress bar that can change during runtime
         self.scale = scale
 
     def draw(self, surface, x, y, percentage):
+        if percentage > 1:
+            percentage = 1
         pygame.draw.rect(surface, self.outline_colour, (x, y, round(self.max_width*self.scale), round(PROGRESS_BAR_HEIGHT*self.scale))) # draw outline
         pygame.draw.rect(surface, self.colour, (x, y, round(self.max_width*percentage*self.scale), round(PROGRESS_BAR_HEIGHT*self.scale))) # draw progress using the given float value for the percentage
 
 
 class UISquare(): # a single square on the minesweeper board to detect clicks for the minesweeper section
     # does not inherit from any other classes as functionality is quite different
-    def __init__(self, position, colour, hover_colour, covered_colour, covered_hover_colour):
+    def __init__(self, position, colour, covered_colour):
         self.position = position
         self.colour = colour
-        self.hover_colour = hover_colour
         self.covered_colour = covered_colour
-        self.covered_hover_colour = covered_hover_colour
         self.box = None
         self.highlighted = False
 
@@ -164,17 +164,19 @@ class UISquare(): # a single square on the minesweeper board to detect clicks fo
         self.box = pygame.Rect(x, y, width, width)
         # draw differently depending on whether the square is revealed
         if is_revealed:
+            pygame.draw.rect(surface, self.colour, self.box)
             if self.highlighted:
-                pygame.draw.rect(surface, self.hover_colour, self.box)
-            else:
-                pygame.draw.rect(surface, self.colour, self.box)
+                highlight = pygame.Surface((width, width), pygame.SRCALPHA)
+                pygame.draw.rect(highlight, (255, 255, 255, 50), highlight.get_rect())  
+                surface.blit(highlight, (x, y))
             text = medium_font.render(number, True, number_colour)
             surface.blit(text, (x+abs((width-text.get_width())//2),y+abs((width-text.get_height())//2)))
         else:
+            pygame.draw.rect(surface, self.covered_colour, self.box)
             if self.highlighted:
-                pygame.draw.rect(surface, self.covered_hover_colour, self.box)
-            else:
-                pygame.draw.rect(surface, self.covered_colour, self.box)
+                highlight = pygame.Surface((width, width), pygame.SRCALPHA)
+                pygame.draw.rect(highlight, (255, 255, 255, 50), highlight.get_rect())  
+                surface.blit(highlight, (x, y))
             if is_flagged:
                 surface.blit(medium_flag, (x,y))
 
