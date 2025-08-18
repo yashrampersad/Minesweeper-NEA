@@ -36,7 +36,7 @@ standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
 standings_screen = scr.FinalStandings(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
 
 state = "MAIN"
-game_started = False
+prev_state = "MAIN"
 
 # game loop
 running = True
@@ -48,20 +48,22 @@ while running:
         state = title_screen.run()
     elif state == "LOBBY":
         state = lobby_screen.run(player_names)
+        prev_state = "LOBBY"
     elif state == "BROADCAST":
         state = finding_lobbies_screen.run(available_lobbies)
     elif state == "GAME":
-        if not game_started:
+        if prev_state != "GAME":
             game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
-            game_started = True
+            standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
         state = game_screen.run(standings)
-        for key in standings.keys():
-            if standings[key] < 1:
-                x = random.randint(0,10)/(10**random.randint(3,6))
-                standings[key] += x
-                if standings[key] > 1:
-                    standings[key] = 1
-        standings = dict(sorted(standings.items(), key=lambda item: item[1], reverse=True))
+        # for key in standings.keys():
+        #     if standings[key] < 1:
+        #         x = random.randint(0,10)/(10**random.randint(3,6))
+        #         standings[key] += x
+        #         if standings[key] > 1:
+        #             standings[key] = 1
+        # standings = dict(sorted(standings.items(), key=lambda item: item[1], reverse=True))
+        prev_state = "GAME"
     elif state == "STANDINGS":
         state = standings_screen.run(standings)
     elif state == "QUIT":

@@ -1,4 +1,7 @@
 import pygame
+import sys
+import os
+
 
 pygame.init()
 
@@ -10,7 +13,7 @@ CORNER_ROUNDING = 40
 TEXT_PADDING = 25
 
 medium_font = pygame.font.SysFont("arial", round((43/5)*4), bold=True)
-medium_flag = pygame.transform.smoothscale(pygame.image.load("C:/Python/Minesweeper NEA/current/flag.png").convert_alpha(), (43, 43))
+# medium_flag = pygame.transform.smoothscale(pygame.image.load("flag.png").convert_alpha(), (43, 43))
 
 class Label(): # for displaying text
     def __init__(self, colour, text, text_colour, scale):
@@ -128,7 +131,7 @@ class InputBox(Button): # for the user to input text
             if self.current_text == "" and not self.activated:
                 self.text = self.default_text
             else:
-                self.text = self.current_text
+                self.text = self.current_text+"_"
     
     def reset(self, new_default): # allows the InputBox to be reset or reset with a new default message if needed
         self.default_text = new_default
@@ -177,8 +180,8 @@ class UISquare(): # a single square on the minesweeper board to detect clicks fo
                 highlight = pygame.Surface((width, width), pygame.SRCALPHA)
                 pygame.draw.rect(highlight, (255, 255, 255, 50), highlight.get_rect())  
                 surface.blit(highlight, (x, y))
-            if is_flagged:
-                surface.blit(medium_flag, (x,y))
+            # if is_flagged:
+            #     surface.blit(medium_flag, (x,y))
 
     def registerClick(self, event):
         mouse_pos = pygame.mouse.get_pos()

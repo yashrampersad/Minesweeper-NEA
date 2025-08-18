@@ -52,7 +52,7 @@ while running:
     elif state == "BROADCAST":
         state = finding_lobbies_screen.run(available_lobbies)
     elif state == "GAME":
-        if prev_state == "LOBBY":
+        if prev_state != "GAME":
             game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
             standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
         state = game_screen.run(standings)

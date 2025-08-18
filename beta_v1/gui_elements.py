@@ -131,7 +131,7 @@ class InputBox(Button): # for the user to input text
             if self.current_text == "" and not self.activated:
                 self.text = self.default_text
             else:
-                self.text = self.current_text
+                self.text = self.current_text+"_"
     
     def reset(self, new_default): # allows the InputBox to be reset or reset with a new default message if needed
         self.default_text = new_default

@@ -11,7 +11,7 @@ colours = {"WHITE":"#d9d9d9",
 
 # board_dimensions = (height, width)
 
-class Base():
+class Base(): # base class with attributes and methods every screen needs so that it can be inherited from to save time
     def __init__(self, surface, screen_width, screen_height):
         self.surface = surface
         self.screen_width, self.screen_height = screen_width, screen_height
@@ -23,20 +23,23 @@ class Base():
 class MainMenu(Base):
     def __init__(self, surface, screen_width, screen_height):
         super().__init__(surface, screen_width, screen_height)
+        # initialising the gui elements that will be used
         self.title = gui.Label(colours["GREY"], "Minespeeder", colours["WHITE"], 4)
         self.subtitle = gui.Label(colours["GREY"], "a real-time minesweeper racer", colours["WHITE"], 0.7)
-        self.create_lobby = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Create Lobby", colours["GREY"], 1.2)
-        self.join_lobby = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Join Lobby", colours["GREY"], 1.2)
-        self.quit = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit", colours["GREY"], 1.2)
+        self.create_lobby = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Create Lobby", colours["GREY"], 1)
+        self.join_lobby = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Join Lobby", colours["GREY"], 1)
+        self.quit = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit", colours["GREY"], 1)
 
     def drawElements(self):
+        # drawing gui elements
         self.title.draw(self.surface, (self.screen_width//2)-self.title.box.width//2, 100)
         self.subtitle.draw(self.surface, (self.screen_width//2), self.title.box.height-40)
-        self.create_lobby.draw(self.surface, (self.screen_width//2)-self.create_lobby.box.width//2, 450)
-        self.join_lobby.draw(self.surface, (self.screen_width//2)-self.join_lobby.box.width//2, 600)
+        self.create_lobby.draw(self.surface, (self.screen_width//2)-self.create_lobby.box.width//2, 500)
+        self.join_lobby.draw(self.surface, (self.screen_width//2)-self.join_lobby.box.width//2, 625)
         self.quit.draw(self.surface, (self.screen_width//2)-self.quit.box.width//2, 750)
 
     def handleEvents(self):
+        # depending on the button that is clicked, switch states to go to a different screen
         for event in pygame.event.get():
             if self.create_lobby.isClicked(event):
                 return "LOBBY"
@@ -46,6 +49,7 @@ class MainMenu(Base):
                 return "QUIT"
             if event.type == pygame.QUIT:
                 return "QUIT"
+        # if nothing is pressed, remain in the current state/screen
         return "MAIN"
     
 class FindingLobbies(Base):
@@ -55,7 +59,7 @@ class FindingLobbies(Base):
         self.lobbies = []
         self.lobby_list = []
     
-    def run(self, available_lobbies):
+    def run(self, available_lobbies): # pass in the list of available lobbies so that they can be constantly updated
         self.drawElements(available_lobbies)
         return self.handleEvents()
 
@@ -96,7 +100,7 @@ class Lobby(Base):
         self.own_player_name = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "Guest", colours["GREY"], 0.6)
         self.player_name_prompt = gui.Label(None, "click to change name", colours["WHITE"], 0.4)
 
-        self.title = gui.Label(colours["GREY"], lobby_name, colours["WHITE"], 2)
+        self.title = gui.Label(None, lobby_name, colours["WHITE"], 2)
         self.quit_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit", colours["GREY"], 0.6)
 
         self.time_label = gui.Label(None, "Time:", colours["WHITE"], 1)
@@ -114,9 +118,6 @@ class Lobby(Base):
 
         self.board_difficulty_button = gui.StateButton(colours["WHITE"], colours["LIGHT SILVER"], ["Beginner", "Intermediate", "Expert", "Custom"], colours["GREY"], 0.6)
         self.board_dimension_prompt = gui.Label(None, "click to change size", colours["WHITE"], 0.4)
-
-        # self.magnification_button = gui.StateButton(colours["WHITE"], colours["LIGHT SILVER"], ["Medium", "Large", "Small"], colours["GREY"], 0.6)
-        # self.magnification_label = gui.Label(colours["GREY"], "board magnification", colours["WHITE"], 0.6)
 
         self.ready_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Ready up!", colours["GREY"], 0.8)
 
@@ -149,6 +150,7 @@ class Lobby(Base):
         self.num_games_label.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_button.box.width-60, 320)
         self.num_games.draw(self.surface, self.screen_width-self.num_games.box.width-20, 320)
 
+        # if the board difficulty is set to Custom, prompt the user to enter their own width and height
         if self.board_difficulty == "Custom":
             self.board_dimension_prompt.draw(self.surface, self.screen_width-self.board_dimension_prompt.box.width, 280)
 
@@ -169,15 +171,14 @@ class Lobby(Base):
             player_label.draw(self.surface, x, y)
             y += 80
 
-        # self.magnification_label.draw(self.surface, 5, self.screen_height-self.magnification_label.box.height-10)
-        # self.magnification_button.draw(self.surface, self.magnification_label.box.width+10, self.screen_height-self.magnification_button.box.height-10)
-
         self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
 
     def setBoard(self):
+        # self.board_squares is a list of all the UISquares so that the class can keep track of all of them
         self.board_squares.clear()
         for i in range(self.board_dimensions[0]):
             for j in range(self.board_dimensions[1]):
+                # draw squares in alternating colours to create a checkerboard pattern
                 if (i+j)%2 == 0:
                     square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
                 else:
@@ -185,12 +186,6 @@ class Lobby(Base):
                 self.board_squares.append(square)
 
     def drawBoard(self):
-        # if self.board_magnification == "Small":
-        #     square_width = 35
-        # elif self.board_magnification == "Medium":
-        #     square_width = 45
-        # elif self.board_magnification == "Large":
-        #     square_width = 65
         max_square_width_x = (self.screen_width-750)//self.board_dimensions[1]
         max_square_width_y = (self.screen_height-300)//self.board_dimensions[0]
         if max_square_width_x > max_square_width_y:
@@ -210,12 +205,13 @@ class Lobby(Base):
 
     def handleEvents(self):
         for event in pygame.event.get():
-            # self.board_magnification = self.magnification_button.updateState(event)
             self.board_difficulty = self.board_difficulty_button.updateState(event)
             if self.board_difficulty == "Custom":
+                # if the difficulty is set to Custom, allow the input boxes to have text entered into them
                 new_width = self.board_width.update(event)
                 new_height = self.board_height.update(event)
                 if new_width is not None:
+                    # ensure that the width and height entered is a number and is 50 or below as to not overload the program
                     if new_width.isnumeric() and int(new_width) <= 50:
                         self.board_dimensions[1] = int(new_width)
                         self.board_width.reset(new_width)
@@ -234,15 +230,18 @@ class Lobby(Base):
                     self.board_dimensions = [16, 16]
                 elif self.board_difficulty == "Expert":
                     self.board_dimensions = [16, 30]
+                # reset the text in the width and height boxes to reflect the new width and height
                 self.board_height.reset(str(self.board_dimensions[0]))
                 self.board_width.reset(str(self.board_dimensions[1]))
 
             new_name = self.own_player_name.update(event)
             if new_name is not None:
-                if 0 < len(new_name) <= 10:
+                if 0 < len(new_name) <= 15:
                     self.own_player_name.reset(new_name)
+                    self.player_name_prompt.text = "click to change name"
                 else:
                     self.own_player_name.reset(self.own_player_name.default_text)
+                    self.player_name_prompt.text = "name too long!"
 
             games = self.num_games.update(event)
             if games is not None:
@@ -252,8 +251,6 @@ class Lobby(Base):
                     self.num_games.reset(self.num_games.default_text)
 
             if self.ready_button.isClicked(event):
-                # global board_magnification
-                # board_magnification = self.board_magnification
                 global board_dimensions
                 board_dimensions = self.board_dimensions
                 return "GAME"
@@ -272,15 +269,9 @@ class Game(Base):
     def __init__(self, surface, screen_width, screen_height):
         super().__init__(surface, screen_width, screen_height)
         self.title = gui.Label(None, "(imagine you are playing rn)", colours["WHITE"], 2)
-        self.board_dimensions = board_dimensions
-        # self.board_magnification = board_magnification
+        self.board_dimensions = board_dimensions # get the board dimensions from the Lobby screen
         self.board_squares = []
         self.finished = False
-
-        # self.magnification_button = gui.StateButton(colours["WHITE"], colours["LIGHT SILVER"], ["Medium", "Large", "Small"], colours["GREY"], 0.6)
-        # self.magnification_button.current_state = self.magnification_button.states.index(self.board_magnification)
-        # self.magnification_button.text = self.board_magnification
-        # self.magnification_label = gui.Label(colours["GREY"], "board magnification", colours["WHITE"], 0.6)
         self.setBoard()
         
     def run(self, standings):
@@ -293,7 +284,7 @@ class Game(Base):
         x = 60
         self.finished = True
         for i, (key, value) in enumerate(standings.items()):
-            if value < 1:
+            if value < 1: # if all the player progress values are 1, self.finished will remain true and the screen will advance to the final standings
                 self.finished = False
             num = gui.Label(None, str(i+1),  colours["WHITE"], 0.6)
             num.draw(self.surface, 10, y)
@@ -303,8 +294,6 @@ class Game(Base):
             name.draw(self.surface, x, y)
             y += 80
 
-        # self.magnification_label.draw(self.surface, 5, self.screen_height-self.magnification_label.box.height-10)
-        # self.magnification_button.draw(self.surface, self.magnification_label.box.width+10, self.screen_height-self.magnification_button.box.height-10)
         self.drawBoard()
 
     def setBoard(self):
@@ -318,12 +307,6 @@ class Game(Base):
                 self.board_squares.append(square)
 
     def drawBoard(self):
-        # if self.board_magnification == "Small":
-        #     square_width = 35
-        # elif self.board_magnification == "Medium":
-        #     square_width = 45
-        # elif self.board_magnification == "Large":
-        #     square_width = 65
         max_square_width_x = (self.screen_width-750)//self.board_dimensions[1]
         max_square_width_y = (self.screen_height-300)//self.board_dimensions[0]
         if max_square_width_x > max_square_width_y:
@@ -358,7 +341,7 @@ class FinalStandings(Base):
     def __init__(self, surface, screen_width, screen_height):
         super().__init__(surface, screen_width, screen_height)
         self.title = gui.Label(None, "Game Finished!", colours["WHITE"], 2)
-        self.continue_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Continue to lobby", colours["GREY"], 1)
+        self.continue_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Continue to Lobby", colours["GREY"], 1)
         self.quit_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit to Main Menu", colours["GREY"], 1)
 
 
