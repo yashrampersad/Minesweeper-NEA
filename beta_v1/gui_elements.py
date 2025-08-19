@@ -24,7 +24,7 @@ class Label(): # for displaying text
 
         self.font = pygame.font.SysFont("couriernew", round(FONT_SIZE*self.scale), bold=True) # set font and text size
         self.rendered_text = self.font.render(self.text, True, self.text_colour) # render the text in the correct font and style
-        self.box = pygame.Rect(0,0, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale)) # create a quick render of the box so that any programs can use the width and height in calculations
+        self.box = pygame.Rect(-100,-100, round(self.rendered_text.get_width()+TEXT_PADDING*2*self.scale), round(self.rendered_text.get_height()+TEXT_PADDING*2*self.scale)) # create a quick render of the box so that any programs can use the width and height in calculations
 
     def draw(self, surface, x, y):
         self.rendered_text = self.font.render(self.text, True, self.text_colour) # render the text in the correct font and style

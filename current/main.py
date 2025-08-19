@@ -11,8 +11,6 @@ screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 
 import screens as scr
 
-
-
 pygame.key.set_repeat(500, 40) # allow the ability to hold keys like backspace to input them multiple times. 500 and 40 are used as these are the standard millisecond timings for key repeats across many operating systems
 
 # making the colour palette easily accessible through a dictionary and using memorable names

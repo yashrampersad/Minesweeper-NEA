@@ -88,12 +88,13 @@ def revealArea(board, y, x):
         return
 
 def updateStats(board, max_flags):
+    game_result = None
     total_squares = len(board) * len(board[0])
     completed_squares = 0 # "completed squares" are squares that have been revealed or flagged
     all_revealed = True # flag that is reset if a covered safe square is found
     flags_placed = 0
     for row in board:
-        for square in board:
+        for square in row:
             if square.isFlagged():
                 flags_placed += 1
                 completed_squares += 1
@@ -103,10 +104,9 @@ def updateStats(board, max_flags):
             elif not square.getNumber() == -1:
                 all_revealed = False
     if all_revealed:
-        print("game won")
         game_result = 1
     # return flags remaining and board completion (in float form)
-    return max_flags-flags_placed, completed_squares/total_squares, game_result
+    return game_result, max_flags-flags_placed, completed_squares/total_squares
 
 def performChord(board, y, x):
     adjacent_mines = 0
@@ -126,17 +126,16 @@ def performChord(board, y, x):
                     square = board[y+i][x+j]
                     if not square.isFlagged():
                         if square.getNumber() == -1:
-                            print("game over")
                             return -1 # -1 represents game over, 1 represents game won
                         else:
                             revealArea(board, y+i, x+j)
 
-def performClick(board, key, position): # key will be an integer; 0 for left click and 1 for right click
+def performClick(board, key, position, max_flags): # key will be an integer; 0 for left click and 1 for right click
+    game_result = None
     square = board[position[0]][position[1]]
     if key == 0:
         if not square.isFlagged(): # flagged squares cannot be revealed
             if square.getNumber() == -1:
-                print("game over")
                 game_result = -1 # -1 represents game over, 1 represents game won
             elif not square.isRevealed():
                 revealArea(board, position[0],position[1])
@@ -145,7 +144,12 @@ def performClick(board, key, position): # key will be an integer; 0 for left cli
                 game_result = performChord(board, position[0],position[1])
     else:
         square.flag()
-    return game_result
+    if game_result != -1: # if they have not lost, continue updating stats
+        game_result, remaining_flags, completion = updateStats(board, max_flags)
+    else:
+        completion = 0
+        remaining_flags = 0
+    return game_result, remaining_flags, completion
 
 def calculateBenchmark(board):
     benchmark = 0
@@ -154,17 +158,16 @@ def calculateBenchmark(board):
         for square in row:
             square.cover()
     # reveal flood fill areas
-    for y in range(board):
-        for x in range(board[0]):
+    for y in range(len(board)):
+        for x in range(len(board[0])):
             if not board[y][x].isRevealed() and board[y][x].getNumber() == 0:
                 revealArea(board, y, x)
                 benchmark += 1
     # count remaining numbers
-    for y in range(board):
-        for x in range(board[0]):
+    for y in range(len(board)):
+        for x in range(len(board[0])):
             if not board[y][x].isRevealed() and board[y][x].getNumber() > 0:
                 benchmark += 1
-
     return benchmark
 
 def textDisplay(board):

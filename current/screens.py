@@ -95,6 +95,7 @@ class Lobby(Base):
         self.board_difficulty = "Beginner"
         self.board_dimensions = [9,9]
         self.board_squares = []
+        self.square_width = 0
         self.current_dimensions = None
         self.player_names = None
         self.player_labels = None
@@ -134,10 +135,10 @@ class Lobby(Base):
         return self.handleEvents()
 
     def drawElements(self, player_list):
-        self.time_label.draw(self.surface, self.screen_width//4+100, 100)
-        self.time.draw(self.surface, self.screen_width//4+70+self.time_label.box.width, 100)
-        self.flag_label.draw(self.surface, (self.screen_width//2)+50, 100)
-        self.flag_count.draw(self.surface, (self.screen_width//2)+30+self.flag_label.box.width, 100)
+        self.time_label.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width, 50)
+        self.time.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width//2-self.time.box.width//2, 100)
+        self.flag_label.draw(self.surface, (self.screen_width//2)+50, 50)
+        self.flag_count.draw(self.surface, (self.screen_width//2)+50+self.flag_label.box.width//2-self.flag_count.box.width//2, 100)
 
         self.title.draw(self.surface, -20, -30)
         self.quit_button.draw(self.surface, self.title.box.width-30, 40)
@@ -196,18 +197,18 @@ class Lobby(Base):
         max_square_width_x = (self.screen_width-750)//self.board_dimensions[1]
         max_square_width_y = (self.screen_height-300)//self.board_dimensions[0]
         if max_square_width_x > max_square_width_y:
-            square_width = max_square_width_y
+            self.square_width = max_square_width_y
         else:
-            square_width = max_square_width_x
+            self.square_width = max_square_width_x
         current_square = 0
         y = 180
         for i in range(self.board_dimensions[0]):
-            x = (self.screen_width//2) - square_width*self.board_dimensions[1]//2
+            x = (self.screen_width//2) - self.square_width*self.board_dimensions[1]//2
             for j in range(self.board_dimensions[1]):
-                self.board_squares[current_square].draw(self.surface, x, y, square_width, "1", colours["WHITE"], False, False)
+                self.board_squares[current_square].draw(self.surface, x, y, self.square_width, "1", colours["WHITE"], False, False)
                 current_square += 1
-                x += square_width
-            y += square_width
+                x += self.square_width
+            y += self.square_width
 
 
     def handleEvents(self):
@@ -279,9 +280,6 @@ class Lobby(Base):
             if self.quit_button.isClicked(event):
                 return "MAIN"
 
-            for square in self.board_squares:
-                result = square.registerClick(event)
-
             if event.type == pygame.QUIT:
                 return "QUIT"
         return "LOBBY"
@@ -290,18 +288,36 @@ class Game(Base):
     def __init__(self, surface, screen_width, screen_height):
         super().__init__(surface, screen_width, screen_height)
         self.board_dimensions = board_dimensions # get the board dimensions from the Lobby screen
+        self.square_width = 0
         self.board_squares = []
         self.finished = False
         self.board = self.setBoard()
         self.total_clicks = 0
+        self.mine_count = mine_count
         self.remaining_flags = mine_count
         self.first_click = True
+        self.first_game = True
         self.start_time = None
+        self.game_result = None
+        self.completion = 0
 
         self.time_label = gui.Label(None, "Time:", colours["WHITE"], 1)
         self.time = gui.Label(None, "0.0s", colours["WHITE"], 1)
         self.flag_label = gui.Label(None, "Flags:", colours["WHITE"], 1)
         self.flag_count = gui.Label(None, "10", colours["WHITE"], 1)
+        self.reset_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Reset", colours["GREY"], 0.8)
+
+        self.finished_title = gui.Label(None, "Game Finished!", colours["WHITE"], 1)
+        self.num_clicks = gui.Label(None, "Number of clicks: 0", colours["WHITE"], 0.8)
+        self.extra_stats_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Extra stats", colours["GREY"], 0.8)
+        self.show_extra_stats = False
+        self.benchmark = gui.Label(None, "3BV: 0", colours["WHITE"], 0.8)
+        self.benchmark_value = 0
+        self.benchmark_sec = gui.Label(None, "3BV/s: 0", colours["WHITE"], 0.8)
+        self.benchmark_sec_value = 0
+        self.efficiency = gui.Label(None, "Efficiency: 0", colours["WHITE"], 0.8)
+        self.efficiency_value = 0
+        self.stats_calculated = False
         
     def run(self, standings):
         self.drawElements(standings)
@@ -310,11 +326,29 @@ class Game(Base):
     def drawElements(self, standings):
         if not self.first_click:
             self.time.text = str(time.time() - self.start_time)[:4]
-        self.time_label.draw(self.surface, self.screen_width//4+100, 100)
-        self.time.draw(self.surface, self.screen_width//4+70+self.time_label.box.width, 100)
-        self.flag_label.draw(self.surface, (self.screen_width//2)+50, 100)
-        self.flag_count.text = str(self.flag_count)
-        self.flag_count.draw(self.surface, (self.screen_width//2)+30+self.flag_label.box.width, 100)
+        self.time_label.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width, 50)
+        self.time.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width//2-self.time.box.width//2, 100)
+        self.flag_count.text = str(self.remaining_flags)
+        self.flag_label.draw(self.surface, (self.screen_width//2)+50, 50)
+        self.flag_count.draw(self.surface, (self.screen_width//2)+50+self.flag_label.box.width//2-self.flag_count.box.width//2, 100)
+
+        self.reset_button.draw(self.surface, self.screen_width//2-self.reset_button.box.width//2, self.screen_height-self.reset_button.box.height-10)
+
+        if self.game_result == 1:
+            self.finished_title.text = "Game Finished!"
+            self.finished_title.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 100)
+            self.num_clicks.text = f"Number of clicks: {self.total_clicks}"
+            self.num_clicks.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 200)
+            self.extra_stats_button.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 300)
+        elif self.game_result == -1:
+            self.finished_title.text = "Try again!"
+            self.finished_title.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 100)
+
+        if self.show_extra_stats:
+            self.benchmark.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 400)
+            self.benchmark_sec.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 500)
+            self.efficiency.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-150, 600)
+
 
         y = 190
         x = 60
@@ -337,9 +371,9 @@ class Game(Base):
         for i in range(self.board_dimensions[0]):
             for j in range(self.board_dimensions[1]):
                 if (i+j)%2 == 0:
-                    square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
+                    square = gui.UISquare((j,i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
                 else:
-                    square = gui.UISquare((j, i), colours["DARK COAL"], colours["DARK SILVER"])
+                    square = gui.UISquare((j,i), colours["DARK COAL"], colours["DARK SILVER"])
                 self.board_squares.append(square)
         board = game.createBoard(board_dimensions)
         return board
@@ -348,33 +382,57 @@ class Game(Base):
         max_square_width_x = (self.screen_width-750)//self.board_dimensions[1]
         max_square_width_y = (self.screen_height-300)//self.board_dimensions[0]
         if max_square_width_x > max_square_width_y:
-            square_width = max_square_width_y
+            self.square_width = max_square_width_y
         else:
-            square_width = max_square_width_x
+            self.square_width = max_square_width_x
         current_square = 0
         y = 180
         for row in self.board:
-            x = (self.screen_width//2) - square_width*self.board_dimensions[1]//2
+            x = (self.screen_width//2) - self.square_width*self.board_dimensions[1]//2
             for square in row:
-                self.board_squares[current_square].draw(self.surface, x, y, square_width, str(square.getNumber()), colours["WHITE"], square.isRevealed(), square.isFlagged())
+                self.board_squares[current_square].draw(self.surface, x, y, self.square_width, str(square.getNumber()), colours["WHITE"], square.isRevealed(), square.isFlagged())
                 current_square += 1
-                x += square_width
-            y += square_width
+                x += self.square_width
+            y += self.square_width
 
     def handleEvents(self):
         for event in pygame.event.get():
-            # self.board_magnification = self.magnification_button.updateState(event)
+            
+            if self.game_result is None: # if the game has not finished, continue
+                for square in self.board_squares:
+                    result = square.registerClick(event)
+                    if result is not None:
+                        if self.first_click:
+                            if result[0] == 0 and not self.board[result[1][0]][result[1][1]].isFlagged(): # ensure the first click is a left click and not the user just flagging the board
+                                if self.first_game: # start the timer at their first try, but if they lose or reset, continue the timer so the race is fair
+                                    self.start_time = time.time()
+                                    self.first_game = False
+                                game.placeMines(self.board, square.position[0], square.position[1], self.mine_count)
+                                self.first_click = False
+                        self.game_result, self.remaining_flags, self.completion = game.performClick(self.board, result[0], result[1], self.mine_count)
+                        self.total_clicks += 1
+            elif self.game_result == -1:
+                if not self.stats_calculated:
+                    self.benchmark_value = game.calculateBenchmark(self.board)
+                    self.benchmark.text = f"3BV: {self.benchmark_value}"
+                    self.benchmark_sec_value = self.benchmark_value / self.time
+                    self.benchmark_sec.text = f"3BV/s: {self.benchmark_sec_value}"
+                    self.efficiency_value = (self.benchmark_value*100)//self.total_clicks
+                    self.efficiency.text = f"Efficiency: {self.efficiency_value}"
+                    self.stats_calculated = True
 
-            for square in self.board_squares:
-                result = square.registerClick(event)
-                if result is not None:
-                    if self.first_click:
-                        self.start_time = time.time()
-                        game.placeMines(self.board, square.position[0], square.position[1], self.remaining_flags)
-                        self.first_click = False
-                    self.remaining_flags = game.performClick(self.board, result[0], result[1], self.total_clicks, self.remaining_flags)
-                    self.total_clicks += 1
+            if self.reset_button.isClicked(event):
+                self.board = self.setBoard()
+                self.remaining_flags = self.mine_count
+                self.completion = 0
+                self.total_clicks = 0
+                self.stats_calculated = False
+                self.show_extra_stats = False
+                self.game_result = None
+                self.first_click = True
 
+            if self.extra_stats_button.isClicked(event):
+                self.show_extra_stats = not self.show_extra_stats # toggle the extra stats when the button is clicked
 
             if event.type == pygame.QUIT:
                     return "QUIT"
