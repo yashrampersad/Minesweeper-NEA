@@ -43,7 +43,7 @@ def placeMines(board, click_y, click_x, num_mines): # click_x and click_y hold t
         mine_y = random.randint(0, len(board)-1)
         mine_x = random.randint(0, len(board[0])-1)
         # regenerate mines if they are on the first click or directly adjacent to it
-        while abs(mine_y-click_y) <= 1 and abs(mine_x-click_x) <= 1 and [mine_y, mine_x] not in placed:
+        while abs(mine_y-click_y) <= 1 or abs(mine_x-click_x) <= 1 or [mine_y, mine_x] in placed:
             mine_y = random.randint(0, len(board)-1)
             mine_x = random.randint(0, len(board[0])-1)
 
@@ -53,7 +53,7 @@ def placeMines(board, click_y, click_x, num_mines): # click_x and click_y hold t
 def generateNumbers(board):
     # loop to find each mine in the board
     for y in range(len(board)):
-        for x in range(len(board)):
+        for x in range(len(board[0])):
             # if a mine is found, increment the adjacent squares by 1
             if board[y][x].getNumber() == -1:
                 for i in range(-1,2): # to search every vertically adjacent square
@@ -142,7 +142,7 @@ def performClick(board, key, position, max_flags): # key will be an integer; 0 f
             else:
                 # perform a chord if they have left clicked a number
                 game_result = performChord(board, position[0],position[1])
-    else:
+    elif not square.isRevealed():
         square.flag()
     if game_result != -1: # if they have not lost, continue updating stats
         game_result, remaining_flags, completion = updateStats(board, max_flags)
@@ -164,10 +164,12 @@ def calculateBenchmark(board):
                 revealArea(board, y, x)
                 benchmark += 1
     # count remaining numbers
-    for y in range(len(board)):
-        for x in range(len(board[0])):
-            if not board[y][x].isRevealed() and board[y][x].getNumber() > 0:
+    for row in board:
+        for square in row:
+            if not square.isRevealed() and square.getNumber() > 0:
                 benchmark += 1
+                square.reveal()
+
     return benchmark
 
 def textDisplay(board):

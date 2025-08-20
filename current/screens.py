@@ -108,7 +108,7 @@ class Lobby(Base):
         self.quit_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit", colours["GREY"], 0.6)
 
         self.time_label = gui.Label(None, "Time:", colours["WHITE"], 1)
-        self.time = gui.Label(None, "0.0s", colours["WHITE"], 1)
+        self.time = gui.Label(None, "0s", colours["WHITE"], 1)
         self.flag_label = gui.Label(None, "Flags:", colours["WHITE"], 1)
         self.flag_count = gui.Label(None, "10", colours["WHITE"], 1)
 
@@ -188,9 +188,9 @@ class Lobby(Base):
             for j in range(self.board_dimensions[1]):
                 # draw squares in alternating colours to create a checkerboard pattern
                 if (i+j)%2 == 0:
-                    square = gui.UISquare((j, i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
+                    square = gui.UISquare((i,j), colours["LIGHT COAL"], colours["LIGHT SILVER"])
                 else:
-                    square = gui.UISquare((j, i), colours["DARK COAL"], colours["DARK SILVER"])
+                    square = gui.UISquare((i,j), colours["DARK COAL"], colours["DARK SILVER"])
                 self.board_squares.append(square)
 
     def drawBoard(self):
@@ -205,7 +205,7 @@ class Lobby(Base):
         for i in range(self.board_dimensions[0]):
             x = (self.screen_width//2) - self.square_width*self.board_dimensions[1]//2
             for j in range(self.board_dimensions[1]):
-                self.board_squares[current_square].draw(self.surface, x, y, self.square_width, "1", colours["WHITE"], False, False)
+                self.board_squares[current_square].draw(self.surface, x, y, self.square_width, "1", False, False)
                 current_square += 1
                 x += self.square_width
             y += self.square_width
@@ -302,7 +302,8 @@ class Game(Base):
         self.completion = 0
 
         self.time_label = gui.Label(None, "Time:", colours["WHITE"], 1)
-        self.time = gui.Label(None, "0.0s", colours["WHITE"], 1)
+        self.time = gui.Label(None, "0s", colours["WHITE"], 1)
+        self.current_time = 0
         self.flag_label = gui.Label(None, "Flags:", colours["WHITE"], 1)
         self.flag_count = gui.Label(None, "10", colours["WHITE"], 1)
         self.reset_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Reset", colours["GREY"], 0.8)
@@ -324,8 +325,9 @@ class Game(Base):
         return self.handleEvents()
     
     def drawElements(self, standings):
-        if not self.first_click:
-            self.time.text = str(time.time() - self.start_time)[:4]
+        if not self.first_game and self.game_result != 1:
+            self.current_time = time.time() - self.start_time
+            self.time.text = str(self.current_time)[:str(self.current_time).index(".")+4] + "s" # print to 3 dp so that it is to the millisecond
         self.time_label.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width, 50)
         self.time.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width//2-self.time.box.width//2, 100)
         self.flag_count.text = str(self.remaining_flags)
@@ -371,26 +373,29 @@ class Game(Base):
         for i in range(self.board_dimensions[0]):
             for j in range(self.board_dimensions[1]):
                 if (i+j)%2 == 0:
-                    square = gui.UISquare((j,i), colours["LIGHT COAL"], colours["LIGHT SILVER"])
+                    square = gui.UISquare((i,j), colours["LIGHT COAL"], colours["LIGHT SILVER"])
                 else:
-                    square = gui.UISquare((j,i), colours["DARK COAL"], colours["DARK SILVER"])
+                    square = gui.UISquare((i,j), colours["DARK COAL"], colours["DARK SILVER"])
                 self.board_squares.append(square)
         board = game.createBoard(board_dimensions)
         return board
 
     def drawBoard(self):
+        previous_width = self.square_width
         max_square_width_x = (self.screen_width-750)//self.board_dimensions[1]
         max_square_width_y = (self.screen_height-300)//self.board_dimensions[0]
         if max_square_width_x > max_square_width_y:
             self.square_width = max_square_width_y
         else:
             self.square_width = max_square_width_x
+        if previous_width != self.square_width:
+            gui.loadResources(self.square_width)
         current_square = 0
         y = 180
         for row in self.board:
             x = (self.screen_width//2) - self.square_width*self.board_dimensions[1]//2
             for square in row:
-                self.board_squares[current_square].draw(self.surface, x, y, self.square_width, str(square.getNumber()), colours["WHITE"], square.isRevealed(), square.isFlagged())
+                self.board_squares[current_square].draw(self.surface, x, y, self.square_width, str(square.getNumber()), square.isRevealed(), square.isFlagged())
                 current_square += 1
                 x += self.square_width
             y += self.square_width
@@ -408,17 +413,18 @@ class Game(Base):
                                     self.start_time = time.time()
                                     self.first_game = False
                                 game.placeMines(self.board, square.position[0], square.position[1], self.mine_count)
+                                game.generateNumbers(self.board)
                                 self.first_click = False
                         self.game_result, self.remaining_flags, self.completion = game.performClick(self.board, result[0], result[1], self.mine_count)
                         self.total_clicks += 1
-            elif self.game_result == -1:
+            elif self.game_result == 1:
                 if not self.stats_calculated:
                     self.benchmark_value = game.calculateBenchmark(self.board)
                     self.benchmark.text = f"3BV: {self.benchmark_value}"
-                    self.benchmark_sec_value = self.benchmark_value / self.time
-                    self.benchmark_sec.text = f"3BV/s: {self.benchmark_sec_value}"
+                    self.benchmark_sec_value = self.benchmark_value / self.current_time
+                    self.benchmark_sec.text = "3BV/s: " + str(self.benchmark_sec_value)[:5]
                     self.efficiency_value = (self.benchmark_value*100)//self.total_clicks
-                    self.efficiency.text = f"Efficiency: {self.efficiency_value}"
+                    self.efficiency.text = f"Efficiency: {self.efficiency_value}%"
                     self.stats_calculated = True
 
             if self.reset_button.isClicked(event):
