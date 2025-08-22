@@ -37,8 +37,8 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
-flag_source = pygame.image.load(resource_path("beta_v2/flag.png"))
-mine_source = pygame.image.load(resource_path("beta_v2/mine.png"))
+flag_source = pygame.image.load(resource_path("flag.png"))
+mine_source = pygame.image.load(resource_path("mine.png"))
 
 class Label(): # for displaying text
     def __init__(self, colour, text, text_colour, scale):
