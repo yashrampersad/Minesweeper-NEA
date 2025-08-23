@@ -36,9 +36,12 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-
-flag_source = pygame.image.load(resource_path("flag.png"))
-mine_source = pygame.image.load(resource_path("mine.png"))
+try:
+    flag_source = pygame.image.load(resource_path("flag.png"))
+    mine_source = pygame.image.load(resource_path("mine.png"))
+except FileNotFoundError:
+    flag_source = pygame.image.load(resource_path("beta_v2/flag.png"))
+    mine_source = pygame.image.load(resource_path("beta_v2/mine.png"))
 
 class Label(): # for displaying text
     def __init__(self, colour, text, text_colour, scale):
@@ -117,7 +120,7 @@ class InputBox(Button): # for the user to input text
         else:
             width = text.get_width()
         self.box = pygame.Rect(x, y, round(width+TEXT_PADDING*2*self.scale), round(text.get_height()+TEXT_PADDING*2*self.scale))
-        # change colour if the cursor is hovering over
+        # draw a flashing cursor every half second
         if self.activated:
             if self.flash < 30:
                 self.text = self.current_text+"_"
@@ -129,6 +132,7 @@ class InputBox(Button): # for the user to input text
             self.flash += 1
             pygame.draw.rect(surface, self.hover_colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
         else:
+            # change colour if the cursor is hovering over
             if self.highlighted:
                 pygame.draw.rect(surface, self.hover_colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
             else:

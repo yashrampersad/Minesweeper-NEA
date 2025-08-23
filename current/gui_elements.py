@@ -28,7 +28,7 @@ class Label(): # for displaying text
         self.colour = colour
         self.text = text
         self.text_colour = text_colour
-        self.scale = scale
+        self.scale = scale*global_scale
 
         self.font = pygame.font.SysFont("couriernew", round(FONT_SIZE*self.scale), bold=True) # set font and text size
         self.rendered_text = self.font.render(self.text, True, self.text_colour) # render the text in the correct font and style
@@ -89,6 +89,7 @@ class InputBox(Button): # for the user to input text
         self.default_text = default_text
         self.current_text = ""
         self.activated = False
+        self.flash = 0
         super().__init__(colour, hover_colour, default_text, text_colour, scale)
 
     def draw(self, surface, x, y):
@@ -99,11 +100,23 @@ class InputBox(Button): # for the user to input text
         else:
             width = text.get_width()
         self.box = pygame.Rect(x, y, round(width+TEXT_PADDING*2*self.scale), round(text.get_height()+TEXT_PADDING*2*self.scale))
-        # change colour if the cursor is hovering over
-        if self.highlighted:
+        # draw a flashing cursor every half second
+        if self.activated:
+            if self.flash < 30:
+                self.text = self.current_text+"_"
+            elif self.flash > 60:
+                self.text = self.current_text+" "
+                self.flash = 0
+            else:
+                self.text = self.current_text+" "
+            self.flash += 1
             pygame.draw.rect(surface, self.hover_colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
         else:
-            pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
+            # change colour if the cursor is hovering over
+            if self.highlighted:
+                pygame.draw.rect(surface, self.hover_colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
+            else:
+                pygame.draw.rect(surface, self.colour, self.box, border_radius=round(CORNER_ROUNDING*self.scale))
         surface.blit(text, (round(x+TEXT_PADDING*self.scale),round(y+TEXT_PADDING*self.scale)))
 
     def update(self, event):
@@ -111,13 +124,15 @@ class InputBox(Button): # for the user to input text
         
         # activated represents the state where the user can edit the text in the InputBox
         if not self.activated:
-            self.highlighted = False
             # once the user clicks on the box it becomes activated and they can enter text
-            if self.box.collidepoint(mouse_pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                self.activated = True
+            if self.box.collidepoint(mouse_pos):
+                self.highlighted = True
+                if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    self.activated = True
+            else:
+                self.highlighted = False
 
         elif self.activated:
-            self.highlighted = True
             keys = pygame.key.get_pressed()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
@@ -125,7 +140,6 @@ class InputBox(Button): # for the user to input text
                 # if they click enter, return the text
                 elif event.key == pygame.K_RETURN:
                     self.activated = False
-                    self.highlighted = False
                     return self.current_text
                 else:
                     if event.key not in [pygame.K_RETURN, pygame.K_BACKSPACE, pygame.K_LCTRL, pygame.K_RCTRL]:
@@ -134,12 +148,9 @@ class InputBox(Button): # for the user to input text
             elif not self.box.collidepoint(mouse_pos) and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                 self.current_text = ""
                 self.activated = False
-                self.highlighted = False
             # display the default text if nothing has been entered
             if self.current_text == "" and not self.activated:
                 self.text = self.default_text
-            else:
-                self.text = self.current_text+"_"
     
     def reset(self, new_default): # allows the InputBox to be reset or reset with a new default message if needed
         self.default_text = new_default
@@ -152,7 +163,7 @@ class ProgressBar(): # to display a progress bar that can change during runtime
         self.max_width = max_width
         self.colour = colour
         self.outline_colour = outline_colour
-        self.scale = scale
+        self.scale = scale*global_scale
 
     def draw(self, surface, x, y, percentage):
         if percentage > 1:
@@ -217,3 +228,7 @@ def loadResources(square_width):
     flag = pygame.transform.smoothscale(pygame.image.load("current/flag.png").convert_alpha(), (square_width, square_width))
     global mine
     mine = pygame.transform.smoothscale(pygame.image.load("current/mine.png").convert_alpha(), (square_width, square_width))
+
+def setScale(GLOBAL_SCALE):
+    global global_scale
+    global_scale = GLOBAL_SCALE

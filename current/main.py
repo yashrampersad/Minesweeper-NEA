@@ -1,13 +1,12 @@
 import pygame
 
-import random
-
 pygame.init()
 
 SCREEN_WIDTH = 1800
 SCREEN_HEIGHT = 900
+global_scale = 0.6
 
-screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
 
 import screens as scr
 
@@ -25,19 +24,40 @@ colours = {"WHITE":"#d9d9d9",
 pygame.display.set_caption("Minespeeder")
 clock = pygame.time.Clock()
 
-title_screen = scr.MainMenu(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+running = True
+
+scale_screen = scr.InitialScale(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)  
+
+state = "SCALE"
+
+set_scale = True
+while set_scale:
+    screen.fill(colours["GREY"])
+    if state == "SCALE":
+        state, new_scale = scale_screen.run()
+        if new_scale != global_scale:
+            global_scale = new_scale
+            screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
+    elif state == "MAIN":
+        set_scale = False
+    elif state == "QUIT":
+        set_scale = False
+        running = False
+
+    pygame.display.update()
+
+title_screen = scr.MainMenu(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
 available_lobbies = ["Yash's Lobby", "Guest's Lobby"]
-finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
-lobby_screen = scr.Lobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, "Test Lobby")
+finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
+lobby_screen = scr.Lobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, "Test Lobby")
 player_names = ["Yash", "Guest", "Best_player67"]
 standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
-standings_screen = scr.FinalStandings(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+standings_screen = scr.FinalStandings(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
 
 state = "MAIN"
 prev_state = "MAIN"
 
 # game loop
-running = True
 while running:
 
     screen.fill(colours["GREY"])
@@ -51,7 +71,7 @@ while running:
         state = finding_lobbies_screen.run(available_lobbies)
     elif state == "GAME":
         if prev_state != "GAME":
-            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT)
+            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
             standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
         state = game_screen.run(standings)
         # for key in standings.keys():

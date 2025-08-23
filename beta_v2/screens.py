@@ -172,8 +172,10 @@ class Lobby(Base):
                 self.board_squares.append(square)
 
     def drawBoard(self):
+        # get the maximum scale based on the available space
         max_square_width_x = (self.screen_width-self.screen_width*3//7)//self.board_dimensions[1]
         max_square_width_y = (self.screen_height-self.screen_height//3)//self.board_dimensions[0]
+        # choose the smaller value to result in the board being as large as possible while still fitting
         if max_square_width_x > max_square_width_y:
             self.square_width = max_square_width_y
         else:
