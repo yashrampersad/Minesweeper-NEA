@@ -72,7 +72,6 @@ prev_state = "MAIN"
 
 # game loop
 while running:
-
     screen.fill(colours["GREY"])
 
     if state == "MAIN":
