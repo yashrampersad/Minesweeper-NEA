@@ -1,4 +1,6 @@
 import pygame
+import multiplayer
+import threading
 
 pygame.init()
 
@@ -46,13 +48,24 @@ while set_scale:
 
     pygame.display.update()
 
+# set default current and return info
+current_info = {
+    "name":"Guest 1",
+    "ready":False,
+    "completion":0
+}
+return_info = {
+    "lobbies":{},
+    "settings":["Beginner", [9,9], 10], 
+    "num games":[1,1]
+}
+
 title_screen = scr.MainMenu(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
-available_lobbies = ["Yash's Lobby", "Guest's Lobby"]
 finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
-lobby_screen = scr.Lobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, "Test Lobby")
-player_names = ["Yash", "Guest", "Best_player67"]
-standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
-standings_screen = scr.FinalStandings(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
+host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, "Test Lobby")
+game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, return_info)
+
+is_host = None
 
 state = "MAIN"
 prev_state = "MAIN"
@@ -63,29 +76,57 @@ while running:
     screen.fill(colours["GREY"])
 
     if state == "MAIN":
-        state = title_screen.run()
-    elif state == "LOBBY":
-        state = lobby_screen.run(player_names)
+        quit_requested, is_host = title_screen.run()
+        # if they have requested to quit on the main screen, close the program immediatley as there is no need to disconnect from any lobbies
+        running = not quit_requested
+        if is_host is not None:
+            if is_host: # create different lobby screens depending on whether they have selected to host or join a lobby
+                host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, "Test Lobby")
+                network = multiplayer.Host("Test lobby")
+                state = "LOBBY"
+            else:
+                network = multiplayer.Client()
+                state = "BROADCAST"
+        prev_state = "MAIN"
+
+    if state == "BROADCAST":
+        quit_requested, chosen_lobby = finding_lobbies_screen.run(return_info["lobbies"])
+        if chosen_lobby is not None:
+            # request to join the lobby onn a separate thread so that the program does not stop
+            lobby_request_thread = threading.Thread(target=network.requestLobby(return_info["lobbies"][chosen_lobby])) 
+            client_lobby_screen = scr.ClientLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, chosen_lobby)
+        prev_state = "BROADCAST"
+
+    if state == "LOBBY":
+        if is_host:
+            if prev_state == "GAME":
+                host_lobby_screen.show_final_standings = True # if they have just finished a game, show the final standings overlay
+            quit_requested, current_info = host_lobby_screen.run(return_info)
+        else:
+            if prev_state == "GAME":
+                client_lobby_screen.show_final_standings = True # if they have just finished a game, show the final standings overlay
+            quit_requested, current_info = client_lobby_screen.run(return_info)
         prev_state = "LOBBY"
-    elif state == "BROADCAST":
-        state = finding_lobbies_screen.run(available_lobbies)
-    elif state == "GAME":
-        if prev_state != "GAME":
-            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
-            standings = {"You":0, "Yash":0, "Guest":0, "Best_player67":0}
-        state = game_screen.run(standings)
-        # for key in standings.keys():
-        #     if standings[key] < 1:
-        #         x = random.randint(0,10)/(10**random.randint(3,6))
-        #         standings[key] += x
-        #         if standings[key] > 1:
-        #             standings[key] = 1
-        # standings = dict(sorted(standings.items(), key=lambda item: item[1], reverse=True))
+
+    if state == "GAME":
+        quit_requested, current_info = game_screen.run(return_info)
         prev_state = "GAME"
-    elif state == "STANDINGS":
-        state = standings_screen.run(standings)
-    elif state == "QUIT":
-        running = False
+
+    if state == "STANDINGS":
+        game_screen.show_standings = True # show the standings on the game screen if they still have games left to play
+        quit_requested, current_info = game_screen.run(return_info)
+        prev_state = "STANDINGS"
+
+    if is_host is not None:
+        if quit_requested:
+            temp = state
+            network.state = "QUIT"
+            state, return_info = network.getInfo(current_info)
+            if state != "MAIN":
+                state = temp # if the user has not yet been removed from the lobby, ensure that they remain in the screen that they were in
+        else:
+            state, return_info = network.getInfo(current_info)
+
 
 
     pygame.display.update()

@@ -6,6 +6,6 @@
 # remove()
 # print(a)
 
-a = {"yash":"bash", "dash":"splash"}
+a = {}
 
-print("bash" in a)
+print(len(a))
