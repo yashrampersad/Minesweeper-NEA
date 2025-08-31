@@ -73,6 +73,7 @@ prev_state = "MAIN"
 # game loop
 while running:
     screen.fill(colours["GREY"])
+    print("test")
 
     if state == "MAIN":
         quit_requested, is_host = title_screen.run()
