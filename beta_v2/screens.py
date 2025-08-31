@@ -205,7 +205,7 @@ class Lobby(Base):
                         self.board_dimensions[1] = int(new_width)
                         self.board_width.reset(new_width)
                         self.board_dimension_prompt.text = "click to change size and mines"
-                        if ((self.board_dimensions[0]*self.board_dimensions[1])**2)//10000 <= self.mine_count <= (self.board_dimensions[0]*self.board_dimensions[1])-9: # reset mines to default if too big for new dimensions
+                        if not ((self.board_dimensions[0]*self.board_dimensions[1])**2)//10000 <= self.mine_count <= (self.board_dimensions[0]*self.board_dimensions[1])-9: # reset mines to default if too big for new dimensions
                             midpoint = round(((self.board_dimensions[0]*self.board_dimensions[1])-9 + ((self.board_dimensions[0]*self.board_dimensions[1])**2)//10000)//6, -1) # set the default to a suitable midpoint between the given range
                             self.mine_count = midpoint
                             self.num_mines.reset(f"{midpoint}")
@@ -247,7 +247,7 @@ class Lobby(Base):
                 self.board_height.reset(str(self.board_dimensions[0]))
                 self.board_width.reset(str(self.board_dimensions[1]))
                 self.num_mines.reset(str(self.mine_count))
-            self.flag_count.text = str(self.mine_count)
+                self.flag_count.text = str(self.mine_count)
 
             # games = self.num_games.update(event)
             # if games is not None:
