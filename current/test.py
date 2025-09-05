@@ -6,6 +6,7 @@
 # remove()
 # print(a)
 
-a = {}
+a = {"yash":10, "yash2":2}
 
-print(len(a))
+for player, standing in enumerate(a.keys()):
+    print(player, standing)

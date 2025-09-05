@@ -16,6 +16,7 @@ colours = {"WHITE":"#d9d9d9",
 
 class Base(): # base class with attributes and methods every screen needs so that it can be inherited from to save time
     def __init__(self, surface, screen_width, screen_height, global_scale):
+        gui.setScale(global_scale)
         self.global_scale = global_scale
         self.surface = surface
         self.screen_width, self.screen_height = screen_width*self.global_scale, screen_height*self.global_scale
@@ -94,6 +95,7 @@ class FindingLobbies(Base):
     def __init__(self, surface, screen_width, screen_height, global_scale):
         super().__init__(surface, screen_width, screen_height, global_scale)
         self.title = gui.Label(colours["GREY"], "Available Lobbies", colours["WHITE"], 1.5)
+        self.back_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Back", colours["GREY"], 1)
         self.drawn_lobbies = {}
         self.lobby_dict = {}
     
@@ -102,6 +104,7 @@ class FindingLobbies(Base):
         return self.handleEvents()
 
     def drawElements(self, available_lobbies):
+        self.back_button.draw(self.surface, 20, 20)
         # refresh lobbies if they have changed
         if self.lobby_dict != available_lobbies:
             self.drawn_lobbies = {}
@@ -120,7 +123,10 @@ class FindingLobbies(Base):
         for event in pygame.event.get():
             for lobby_name, lobby in self.drawn_lobbies.items():
                 if lobby.isClicked(event):
-                    rchosen_lobby = lobby_name
+                    chosen_lobby = lobby_name
+
+            if self.back_button.isClicked(event):
+                quit_requested = True
 
             if event.type == pygame.QUIT:
                 quit_requested = True
@@ -140,6 +146,7 @@ class ClientLobby(Base):
         self.player_names = None
         self.player_labels = None
         self.own_player_name = f"Guest {random.randint(1, 100)}"
+        self.prev_player_name = self.own_player_name
         self.ready = False
         self.current_info = {"name":self.own_player_name,
                              "ready":self.ready}
@@ -148,7 +155,7 @@ class ClientLobby(Base):
         self.show_final_standings = False
 
 
-        self.own_player_name_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "Guest", colours["GREY"], 0.6)
+        self.own_player_name_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], f"{self.own_player_name}", colours["GREY"], 0.6)
         self.player_name_prompt = gui.Label(None, "click to change name", colours["WHITE"], 0.4)
 
         self.title = gui.Label(None, lobby_name, colours["WHITE"], 1.5)
@@ -160,16 +167,16 @@ class ClientLobby(Base):
         self.flag_count = gui.Label(None, "10", colours["WHITE"], 1)
 
         self.board_size_label = gui.Label(None, "Board size", colours["WHITE"], 0.6)
-        self.board_height = gui.Label(colours["WHITE"], "30", colours["GREY"], 0.6)
+        self.board_height = gui.Label(colours["WHITE"], "9", colours["GREY"], 0.6)
         self.x_label = gui.Label(None, "X", colours["WHITE"], 0.6)
-        self.board_width = gui.Label(colours["WHITE"], "16", colours["GREY"], 0.6)
+        self.board_width = gui.Label(colours["WHITE"], "9", colours["GREY"], 0.6)
 
         self.num_mines_desc = gui.Label(None, "Mines:", colours["WHITE"], 0.6)
         self.num_mines_label = gui.Label(colours["WHITE"], "10", colours["GREY"], 0.6)
         self.num_games_desc = gui.Label(None, "Best of:", colours["WHITE"], 0.6)
         self.num_games_label = gui.Label(colours["WHITE"], "1", colours["GREY"], 0.6)
 
-        self.board_difficulty_label = gui.Label(colours["WHITE"], colours["GREY"], 0.6)
+        self.board_difficulty_label = gui.Label(colours["WHITE"], self.board_difficulty, colours["GREY"], 0.6)
 
         self.ready_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Ready up!", colours["GREY"], 0.8)
 
@@ -181,25 +188,20 @@ class ClientLobby(Base):
             self.drawElements(return_info)
             return self.handleEvents()
         else:
+            self.ready = False
             self.final_standings.drawElements(return_info)
             params = self.final_standings.handleEvents()
             self.show_final_standings = params[0]
             return params[1], params[2]
 
     def drawElements(self, return_info):
-        # update from return info
-        self.board_difficulty = return_info["settings"][0]
-        self.board_dimensions = return_info["settings"][1]
-        self.num_mines = return_info["settings"][2]
-        self.num_games = return_info["num games"][0]
-        self.total_games = return_info["num games"][1]
 
         self.board_difficulty_label.text = self.board_difficulty
-        self.board_height.text = self.board_dimensions[0]
-        self.board_width.text = self.board_dimensions[1]
-        self.num_mines_label.text = self.num_mines
-        self.flag_count.text = self.num_mines
-        self.num_games_label.text = self.num_games
+        self.board_height.text = str(self.board_dimensions[0])
+        self.board_width.text = str(self.board_dimensions[1])
+        self.num_mines_label.text = str(self.num_mines)
+        self.flag_count.text = str(self.num_mines)
+        self.num_games_label.text = str(self.num_games)
 
         self.time_label.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width, self.screen_height//18)
         self.time.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width//2-self.time.box.width//2, self.screen_height//9)
@@ -211,26 +213,28 @@ class ClientLobby(Base):
         
         self.drawBoard()
 
-        self.board_size_label.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_button.box.width-60, self.screen_height*3//16)
+        self.board_size_label.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_label.box.width-60, self.screen_height*3//16)
         self.board_height.draw(self.surface, self.screen_width-self.board_height.box.width-20, self.screen_height//4)
         self.x_label.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-30, self.screen_height//4)
         self.board_width.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-40, self.screen_height//4)
-        self.board_difficulty_label.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_button.box.width-60, self.screen_height//4)
+        self.board_difficulty_label.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_label.box.width-60, self.screen_height//4)
 
 
-        self.num_mines_desc.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_button.box.width-60, self.screen_height*3//8)
-        self.num_mines_label.draw(self.surface, self.screen_width-self.num_mines.box.width-20, self.screen_height*3//8)
-        self.num_games_desc.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_button.box.width-60, self.screen_height*4//8)
-        self.num_games_label.draw(self.surface, self.screen_width-self.num_games.box.width-20, self.screen_height*4//8)
+        self.num_mines_desc.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_label.box.width-60, self.screen_height*3//8)
+        self.num_mines_label.draw(self.surface, self.screen_width-self.num_mines_label.box.width-20, self.screen_height*3//8)
+        self.num_games_desc.draw(self.surface, self.screen_width-self.board_height.box.width-self.x_label.box.width-self.board_width.box.width-self.board_difficulty_label.box.width-60, self.screen_height*4//8)
+        self.num_games_label.draw(self.surface, self.screen_width-self.num_games_label.box.width-20, self.screen_height*4//8)
 
         # refresh the player labels if anything has changed
         if return_info["names"].values() != self.player_names:
-            self.player_names = return_info["names"].values().copy()
+            self.player_names = [x for x in return_info["names"].values()]
             while self.player_names.count(self.own_player_name) > 1: # if a guest happens to have the same number name, regenerate it
-                    self.own_player_name = f"Guest {random.randint(1, 100)}"
+                self.own_player_name = f"Guest {random.randint(1, 100)}"
+                self.own_player_name_box.reset(self.own_player_name)
+                self.current_info["name"] = self.own_player_name
             self.player_labels = []
             for player in self.player_names:
-                if self.own_player_name != player:
+                if self.own_player_name != player and self.prev_player_name != player:
                     self.player_labels.append(gui.Label(None, player, colours["WHITE"], 0.6))
 
         # draw all the player labels at regular intervals
@@ -245,6 +249,13 @@ class ClientLobby(Base):
             y += 1.5
 
         self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
+
+        # update from return info
+        self.board_difficulty = return_info["settings"][0]
+        self.board_dimensions = return_info["settings"][1]
+        self.num_mines = return_info["settings"][2]
+        self.num_games = return_info["num games"][0]
+        self.total_games = return_info["num games"][1]
 
     def setBoard(self):
         # self.board_squares is a list of all the UISquares so that the class can keep track of all of them
@@ -283,9 +294,10 @@ class ClientLobby(Base):
         for event in pygame.event.get():
             new_name = self.own_player_name_box.update(event)
             if new_name is not None:
-                if 0 < len(new_name) <= 15 and (self.player_names.count(new_name) == 0 or new_name == self.own_player_name):
+                if 0 < len(new_name) <= 15 and (self.player_names.count(new_name) == 0 or new_name == self.own_player_name) and new_name not in self.player_names:
                     self.own_player_name_box.reset(new_name)
                     self.player_name_prompt.text = "click to change name"
+                    self.prev_player_name = self.own_player_name
                     self.own_player_name = new_name
                     self.current_info["name"] = self.own_player_name
                 else:
@@ -294,8 +306,10 @@ class ClientLobby(Base):
 
             if not self.ready:
                 if self.ready_button.isClicked(event):
+                    print("clicked")
                     self.ready = True
-                    self.current_info["ready"] = True
+                    self.ready_button.highlighted = True
+            self.current_info["ready"] = self.ready
 
             if self.quit_button.isClicked(event):
                 quit_requested = True
@@ -326,7 +340,7 @@ class HostLobby(Base):
         self.final_standings = FinalStandings(surface, screen_width, screen_height, global_scale)
         self.show_final_standings = False
 
-        self.own_player_name_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "Guest", colours["GREY"], 0.6)
+        self.own_player_name_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], f"{self.own_player_name}", colours["GREY"], 0.6)
         self.player_name_prompt = gui.Label(None, "click to change name", colours["WHITE"], 0.4)
 
         self.title = gui.Label(None, lobby_name, colours["WHITE"], 1.5)
@@ -338,9 +352,9 @@ class HostLobby(Base):
         self.flag_count = gui.Label(None, "10", colours["WHITE"], 1)
 
         self.board_size_label = gui.Label(None, "Board size", colours["WHITE"], 0.6)
-        self.board_height = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "30", colours["GREY"], 0.6)
+        self.board_height = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "9", colours["GREY"], 0.6)
         self.x_label = gui.Label(None, "X", colours["WHITE"], 0.6)
-        self.board_width = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "16", colours["GREY"], 0.6)
+        self.board_width = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "9", colours["GREY"], 0.6)
 
         self.num_mines_desc = gui.Label(None, "Mines:", colours["WHITE"], 0.6)
         self.num_mines_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], "10", colours["GREY"], 0.6)
@@ -360,6 +374,7 @@ class HostLobby(Base):
             self.drawElements(return_info)
             return self.handleEvents()
         else:
+            self.ready = False
             self.final_standings.drawElements(return_info)
             params = self.final_standings.handleEvents()
             self.show_final_standings = params[0]
@@ -391,13 +406,15 @@ class HostLobby(Base):
 
         # if the board difficulty is set to Custom, prompt the user to enter their own width and height
         if self.board_difficulty == "Custom":
-            self.board_dimension_prompt.draw(self.surface, self.screen_width-self.board_dimension_prompt.box.width, 280)
+            self.board_dimension_prompt.draw(self.surface, self.screen_width-self.board_dimension_prompt.box.width, self.screen_height//3)
 
         # refresh the player labels if anything has changed
         if return_info["names"].values() != self.player_names:
-            self.player_names = return_info["names"].values().copy()
+            self.player_names = [x for x in return_info["names"].values()]
             while self.player_names.count(self.own_player_name) > 1: # if a guest happens to have the same number name, regenerate it
-                    self.own_player_name = f"Guest {random.randint(1, 100)}"
+                self.own_player_name = f"Guest {random.randint(1, 100)}"
+                self.own_player_name_box.reset(self.own_player_name)
+                self.current_info["name"] = self.own_player_name
             self.player_labels = []
             for player in self.player_names:
                 if self.own_player_name != player:
@@ -498,21 +515,21 @@ class HostLobby(Base):
                 if self.board_difficulty_button.isClicked(event):
                     if self.board_difficulty == "Beginner":
                         self.board_dimensions = [9,9]
-                        self.mine_count = 10
+                        self.num_mines = 10
                     elif self.board_difficulty == "Intermediate":
                         self.board_dimensions = [16, 16]
-                        self.mine_count = 40
+                        self.num_mines = 40
                     elif self.board_difficulty == "Expert":
                         self.board_dimensions = [16, 30]
-                        self.mine_count = 99
+                        self.num_mines = 99
                     # reset the text in the width and height boxes to reflect the new width and height
                     self.board_height.reset(str(self.board_dimensions[0]))
                     self.board_width.reset(str(self.board_dimensions[1]))
-                    self.num_mines.reset(str(self.mine_count))
-                    self.flag_count.text = str(self.mine_count)
-                    self.current_info["settings"][0] = self.board_difficulty
+                    self.num_mines_box.reset(str(self.num_mines))
+                    self.flag_count.text = str(self.num_mines)
                     self.current_info["settings"][1] = self.board_dimensions
                     self.current_info["settings"][2] = self.num_mines
+            self.current_info["settings"][0] = self.board_difficulty
 
             new_name = self.own_player_name_box.update(event)
             if new_name is not None:
@@ -529,15 +546,17 @@ class HostLobby(Base):
             if games is not None:
                 if games.isnumeric() and int(games) <= 10:
                     self.num_games_box.reset(games)
-                    self.num_games = games
-                    self.current_info["num games"] = [games, games]
+                    self.num_games = int(games)
+                    self.current_info["num games"] = [self.num_games, self.num_games]
                 else:
                     self.num_games_box.reset(self.num_games)
 
             if not self.ready:
                 if self.ready_button.isClicked(event):
+                    print("clicked")
                     self.ready = True
-                    self.current_info["ready"] = True
+                    self.ready_button.highlighted = True
+            self.current_info["ready"] = self.ready
 
             if self.quit_button.isClicked(event):
                 quit_requested = True
@@ -614,7 +633,7 @@ class Game(Base):
         return self.handleEvents()
     
     def drawElements(self, return_info):
-        self.title.draw(self.surface, -10, -5)
+        self.title.draw(self.surface, 0, 0)
 
         if not self.first_game and self.game_result != 1:
             self.current_time = time.time() - self.start_time
@@ -650,15 +669,20 @@ class Game(Base):
             self.efficiency.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-self.screen_width//10, (self.screen_height*6)//7)
             self.efficiency_description.draw(self.surface, (3*self.screen_width+self.square_width*self.board_dimensions[1])//4-self.screen_width//10, (self.screen_height*13)//14)
 
-        y = 3
-        x = self.screen_width//30
-        max_width = ((self.screen_width)//2)-((self.square_width*self.board_dimensions[1])//2)-100
-        for i, (name, completion) in enumerate(return_info["standings"].items()):
-            num = gui.Label(None, str(i+1),  colours["WHITE"], 0.6)
-            num.draw(self.surface, self.screen_width//180, self.screen_height*y//16)
-            bar = gui.ProgressBar(max_width, colours["DARK SILVER"], colours["LIGHT COAL"], 0.6)
-            bar.draw(self.surface, x, self.screen_height*y//16, completion)
-            y += 1.5
+        while True:
+            try:
+                y = 3
+                x = self.screen_width//30
+                max_width = ((self.screen_width)//2)-((self.square_width*self.board_dimensions[1])//2)-100
+                for i, (name, completion) in enumerate(return_info["standings"].items()):
+                    num = gui.Label(None, str(i+1),  colours["WHITE"], 0.6)
+                    num.draw(self.surface, self.screen_width//180, self.screen_height*y//16)
+                    bar = gui.ProgressBar(max_width, colours["DARK SILVER"], colours["LIGHT COAL"], 0.6)
+                    bar.draw(self.surface, x, self.screen_height*y//16, completion)
+                    y += 1.5
+                break
+            except RuntimeError:
+                pass
 
         self.drawBoard()
 
@@ -669,6 +693,7 @@ class Game(Base):
             y = 3
             if self.sort_standings_by == "Game standings": # draw names and total points in order of the standings of the current game
                 for name in return_info["standings"].keys():
+                    print(return_info["total points"])
                     points = gui.Label(None, return_info["total points"][name], colours["WHITE"], 0.6)
                     points.draw(self.surface, max_width-points.box.width, self.screen_height*y//16)
                     name = gui.Label(None, name, colours["WHITE"], 0.6)
@@ -791,7 +816,7 @@ class FinalStandings(Base):
         return self.handleEvents()
     
     def drawElements(self, return_info):
-        self.title.draw(self.surface, -20, -30)
+        self.title.draw(self.surface, 0, 0)
 
         y = 2
         x = self.screen_width*5//18
@@ -812,11 +837,12 @@ class FinalStandings(Base):
                 name_label.draw(self.surface, x, self.screen_height*y//9)
                 y += 1
 
-        self.continue_button.draw(self.surface, self.screen_width//2-self.continue_button.box.width//2, y+50)
-        self.quit_button.draw(self.surface, self.screen_width//2-self.quit_button.box.width//2, y+200)
+        self.continue_button.draw(self.surface, self.screen_width//2-self.continue_button.box.width//2, self.screen_height*(y+0.5)//9)
+        self.quit_button.draw(self.surface, self.screen_width//2-self.quit_button.box.width//2, self.screen_height*(y+2)//9)
 
     def handleEvents(self):
         quit_requested = False
+        cont = True
         for event in pygame.event.get():
             cont = not self.continue_button.isClicked(event)
             

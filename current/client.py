@@ -60,7 +60,6 @@ class Client():
                         if lobby_name not in found_lobbies:
                             print(f"found {lobby_name}, {server_ip}, {server_port}")
                             found_lobbies[lobby_name] = (server_ip, server_port) # add the lobby and IP to the found lobbies
-                            self.requestLobby((server_ip, server_port))
                     else:
                         time.sleep(3) # wait to prevent overloading the network
                 except TypeError:
@@ -133,9 +132,3 @@ class Client():
                         self.SERVER_PORT = None
             else:
                 time.sleep(1) # wait if there is nothing to recieve to prevent overloading
-
-
-b = Client()
-t_b = threading.Thread(target=b.discoverLobby, daemon=True).start()
-while True:
-    pass

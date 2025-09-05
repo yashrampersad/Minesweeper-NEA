@@ -1,6 +1,7 @@
 import pygame
 import multiplayer
 import threading
+import random
 
 pygame.init()
 
@@ -9,6 +10,9 @@ SCREEN_HEIGHT = 900
 global_scale = 0.6
 
 screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
+# screen = pygame.display.set_mode((1920,1080), pygame.FULLSCREEN | pygame.SCALED)
+# SCREEN_WIDTH, SCREEN_HEIGHT = pygame.display.get_surface().get_size()
+# global_scale = SCREEN_WIDTH // 1800
 
 import screens as scr
 
@@ -50,20 +54,19 @@ while set_scale:
 
 # set default current and return info
 current_info = {
-    "name":"Guest 1",
+    "name":"",
     "ready":False,
     "completion":0
 }
 return_info = {
     "lobbies":{},
     "settings":["Beginner", [9,9], 10], 
-    "num games":[1,1]
+    "num games":[1,1],
+    "names":{}
 }
 
 title_screen = scr.MainMenu(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
 finding_lobbies_screen = scr.FindingLobbies(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)
-host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, "Test Lobby")
-game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, return_info)
 
 is_host = None
 
@@ -80,8 +83,9 @@ while running:
         running = not quit_requested
         if is_host is not None:
             if is_host: # create different lobby screens depending on whether they have selected to host or join a lobby
-                host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, "Test Lobby")
-                network = multiplayer.Host("Test lobby")
+                lobby_num = random.randint(0, 100)
+                host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, f"Test Lobby {lobby_num}")
+                network = multiplayer.Host(f"Test Lobby {lobby_num}")
                 state = "LOBBY"
             else:
                 network = multiplayer.Client()
@@ -108,6 +112,8 @@ while running:
         prev_state = "LOBBY"
 
     if state == "GAME":
+        if prev_state != "GAME":
+            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, return_info)
         quit_requested, current_info = game_screen.run(return_info)
         prev_state = "GAME"
 
@@ -118,15 +124,17 @@ while running:
 
     if is_host is not None:
         if quit_requested:
-            temp = state
-            network.state = "QUIT"
-            state, return_info = network.getInfo(current_info)
+            if state == "BROADCAST":
+                del network
+                state = "MAIN"
+            else:
+                temp = state
+                network.state = "QUIT"
+                state, return_info = network.getInfo(current_info)
             if state != "MAIN":
                 state = temp # if the user has not yet been removed from the lobby, ensure that they remain in the screen that they were in
         else:
             state, return_info = network.getInfo(current_info)
-
-
 
     pygame.display.update()
 
