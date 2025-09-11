@@ -6,7 +6,4 @@
 # remove()
 # print(a)
 
-a = {"yash":10, "yash2":2}
-
-for player, standing in enumerate(a.keys()):
-    print(player, standing)
+print(round(2.5))

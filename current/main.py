@@ -78,14 +78,13 @@ while running:
     screen.fill(colours["GREY"])
 
     if state == "MAIN":
-        quit_requested, is_host = title_screen.run()
+        quit_requested, is_host, lobby_name = title_screen.run()
         # if they have requested to quit on the main screen, close the program immediatley as there is no need to disconnect from any lobbies
         running = not quit_requested
         if is_host is not None:
             if is_host: # create different lobby screens depending on whether they have selected to host or join a lobby
-                lobby_num = random.randint(0, 100)
-                host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, f"Test Lobby {lobby_num}")
-                network = multiplayer.Host(f"Test Lobby {lobby_num}")
+                host_lobby_screen = scr.HostLobby(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, lobby_name)
+                network = multiplayer.Host(lobby_name)
                 state = "LOBBY"
             else:
                 network = multiplayer.Client()
@@ -109,11 +108,15 @@ while running:
             if prev_state == "GAME":
                 client_lobby_screen.show_final_standings = True # if they have just finished a game, show the final standings overlay
             quit_requested, current_info = client_lobby_screen.run(return_info)
+        try:
+            player_name = current_info["name"]
+        except KeyError:
+            pass
         prev_state = "LOBBY"
 
     if state == "GAME":
         if prev_state != "GAME":
-            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, return_info)
+            game_screen = scr.Game(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale, player_name, return_info)
         quit_requested, current_info = game_screen.run(return_info)
         prev_state = "GAME"
 
@@ -124,17 +127,31 @@ while running:
 
     if is_host is not None:
         if quit_requested:
-            if state == "BROADCAST":
-                del network
+            if is_host:
+                network.quit()
                 state = "MAIN"
+                is_host = None
             else:
-                temp = state
-                network.state = "QUIT"
-                state, return_info = network.getInfo(current_info)
-            if state != "MAIN":
-                state = temp # if the user has not yet been removed from the lobby, ensure that they remain in the screen that they were in
+                if state == "BROADCAST":
+                    network.quit()
+                    state = "MAIN"
+                    is_host = None
+                else:
+                    temp = state
+                    network.state = "QUIT"
+                    state, return_info = network.getInfo(current_info)
+                    if state != "MAIN":
+                        state = temp # if the user has not yet been removed from the lobby, ensure that they remain in the screen that they were in
+                    else:
+                        network.quit()
+                        is_host = None
         else:
             state, return_info = network.getInfo(current_info)
+
+        if state == "DISCONNECT":
+                        title_screen.was_disconnected = True
+                        state = "MAIN"
+                        is_host = None
 
     pygame.display.update()
 
