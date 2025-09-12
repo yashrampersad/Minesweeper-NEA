@@ -98,10 +98,13 @@ class Host():
                 sock.sendto(json.dumps((self.state, self.return_info),).encode(), addr)
 
             while len(self.to_remove) > 0: # remove any players in the queue from all records
-                self.standings.pop(self.player_names[self.to_remove[0]])
+                if self.player_names[self.to_remove[0]] in self.standings:
+                    self.standings.pop(self.player_names[self.to_remove[0]])
                 self.player_names.pop(self.to_remove[0])
-                self.return_info["names"].pop(f"{self.to_remove[0][0]},{self.to_remove[0][1]}")
-                self.ready_players.pop(self.to_remove[0])
+                if f"{self.to_remove[0][0]},{self.to_remove[0][1]}" in self.return_info["names"]:
+                    self.return_info["names"].pop(f"{self.to_remove[0][0]},{self.to_remove[0][1]}")
+                if self.to_remove[0] in self.ready_players:
+                    self.ready_players.pop(self.to_remove[0])
                 self.clients.remove(self.to_remove[0])
                 sock.sendto(json.dumps(("QUIT", "Removed from lobby"),).encode(), self.to_remove[0]) # send a confirmation response
                 self.to_remove.pop(0)
@@ -143,6 +146,7 @@ class Host():
                 if len(self.ready_players) > 0 and all(self.ready_players.values()): # if everyone is ready, start the game
                     self.standings = {}
                     self.countdown = 3.0
+                    self.return_info["countdown"] = str(self.countdown)[0]
                     self.state = "GAME"
             if self.state == "GAME":
                 self.standings = dict(sorted(self.standings.items(), key=lambda item: item[1], reverse=True)) # sort standings
@@ -184,16 +188,16 @@ class Client():
         self.return_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "names":{}, "lobbies":{}} # setting default values
         self.CLIENT_IP = socket.gethostbyname(socket.gethostname()) # get the current IP address
         self.CLIENT_PORT = random.randint(10000, 55555) # randomly generate a unique port so that other clients do not end up recieving the same messages
-        self.current_info = {"completion":0, "player":(self.CLIENT_IP, self.CLIENT_PORT)}
+        self.current_info = {"completion":0, "player":(self.CLIENT_IP, self.CLIENT_PORT), "name":""}
         self.SERVER_IP = None
         self.SERVER_PORT = None
+        self.running = True
 
         self.discover_lobby_thread = threading.Thread(target=self.discoverLobby, daemon=True)
         self.discover_lobby_thread.start()
         self.send_info_thread = threading.Thread(target=self.sendInfo, daemon=True)
         self.recieve_info_thread = threading.Thread(target=self.recieveInfo, daemon=True)
 
-        self.running = True
 
     def getInfo(self, current_info): # exchange information with the main part of the program
         for key, value in current_info.items():
@@ -275,7 +279,7 @@ class Client():
         sock.bind((self.CLIENT_IP, self.CLIENT_PORT))
         while self.running:
             if self.state != "MAIN" and self.state != "BROADCAST":
-                sock.settimeout(3.0)
+                sock.settimeout(4.0)
                 try:
                     data, addr = sock.recvfrom(1024)
                     msg = json.loads(data)

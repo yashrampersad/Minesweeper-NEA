@@ -4,6 +4,7 @@ import game
 import time
 import random
 import math
+import copy
 
 # making the colour palette easily accessible through a dictionary and using memorable names
 colours = {"WHITE":"#d9d9d9",
@@ -198,6 +199,7 @@ class ClientLobby(Base):
         
         self.final_standings = FinalStandings(surface, screen_width, screen_height, global_scale)
         self.show_final_standings = False
+        self.final_return_info = None
 
 
         self.own_player_name_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], f"{self.own_player_name}", colours["GREY"], 0.6)
@@ -227,14 +229,17 @@ class ClientLobby(Base):
 
     def run(self, return_info):
         if not self.show_final_standings:
+            self.final_return_info = None
             if self.board_dimensions != self.current_dimensions:
                 self.setBoard()
                 self.current_dimensions = self.board_dimensions.copy()
             self.drawElements(return_info)
             return self.handleEvents()
         else:
+            if self.final_return_info is None:
+                self.final_return_info = copy.deepcopy(return_info)
             self.ready = False
-            self.final_standings.drawElements(return_info)
+            self.final_standings.drawElements(self.final_return_info)
             params = self.final_standings.handleEvents()
             self.show_final_standings = params[0]
             return params[1], params[2]
@@ -382,6 +387,7 @@ class HostLobby(Base):
                              "num games":[1,1]} # num games is [to be played, total]
         
         self.final_standings = FinalStandings(surface, screen_width, screen_height, global_scale)
+        self.final_return_info = None
         self.show_final_standings = False
 
         self.own_player_name_box = gui.InputBox(colours["WHITE"], colours["LIGHT SILVER"], f"{self.own_player_name}", colours["GREY"], 0.6)
@@ -412,14 +418,17 @@ class HostLobby(Base):
 
     def run(self, return_info):
         if not self.show_final_standings:
+            self.final_return_info = None
             if self.board_dimensions != self.current_dimensions:
                 self.setBoard()
                 self.current_dimensions = self.board_dimensions.copy()
             self.drawElements(return_info)
             return self.handleEvents()
         else:
+            if self.final_return_info is None:
+                self.final_return_info = copy.deepcopy(return_info)
             self.ready = False
-            self.final_standings.drawElements(return_info)
+            self.final_standings.drawElements(self.final_return_info)
             params = self.final_standings.handleEvents()
             self.show_final_standings = params[0]
             return params[1], params[2]
@@ -589,7 +598,7 @@ class HostLobby(Base):
                     self.num_games = int(games)
                     self.current_info["num games"] = [self.num_games, self.num_games]
                 else:
-                    self.num_games_box.reset(self.num_games)
+                    self.num_games_box.reset(str(self.num_games))
 
             if not self.ready:
                 if self.ready_button.isClicked(event):
@@ -664,6 +673,8 @@ class Game(Base):
         self.sort_by_label = gui.Label(None, "Sort by", colours["WHITE"], 0.6)
         self.sort_by_button = gui.StateButton(colours["WHITE"], colours["LIGHT SILVER"], ["Game standings", "Overall points"], colours["GREY"], 0.6)
         self.ready_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Ready up!", colours["GREY"], 0.8)
+        self.standings_label = gui.Label(None, "Name", colours["WHITE"], 0.6)
+        self.points_label = gui.Label(None, "Overall points", colours["WHITE"], 0.6)
         
     def run(self, return_info):
         self.board_dimensions = return_info["settings"][1]
@@ -686,11 +697,16 @@ class Game(Base):
             self.title.text = "Get ready..."
             if self.countdown == "0":
                 self.game_started = True
-        else:
+        elif not self.show_standings:
             if self.total_games > 1:
-                self.title.text = f"Game {(self.total_games)-self.num_games} of {self.total_games}"
+                self.title.text = f"Game {(self.total_games+1)-self.num_games} of {self.total_games}"
             else:
                 self.title.text = "Play!"
+        else:
+            if self.num_games == 1:
+                self.title.text = f"{self.num_games} game left"
+            else:
+                self.title.text = f"{self.num_games} games left"
 
         self.title.draw(self.surface, self.screen_width//2-(self.title.box.width+self.quit_button.box.width)//2, -10)
         self.quit_button.draw(self.surface, self.screen_width//2-(-self.title.box.width+self.quit_button.box.width)//2, self.title.box.height//2-15-self.quit_button.box.height//2)
@@ -735,7 +751,7 @@ class Game(Base):
             standings = {name:0 for name in return_info["names"].values()}
         else:
             standings = return_info["standings"]
-        standings[self.player_name] = self.completion # update the player'ss progress instantly with the current completion to reduce lag
+        standings[self.player_name] = self.completion # update the player's progress instantly with the current completion to reduce lag
 
         y = 5
         x = self.screen_width//30
@@ -753,6 +769,8 @@ class Game(Base):
             self.sort_by_label.draw(self.surface, x, self.screen_height*3//16)
             self.sort_by_button.draw(self.surface, x+self.sort_by_label.box.width+10, self.screen_height*3//16)
             self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
+            self.standings_label.draw(self.surface, x, self.screen_height*4//16)
+            self.points_label.draw(self.surface, x+max_width-self.points_label.box.width, self.screen_height*4//16)
             y = 5
             if self.sort_standings_by == "Game standings": # draw names and total points in order of the standings of the current game
                 for name in return_info["standings"].keys():
@@ -880,10 +898,12 @@ class Game(Base):
 class FinalStandings(Base):
     def __init__(self, surface, screen_width, screen_height, global_scale):
         super().__init__(surface, screen_width, screen_height, global_scale)
-        self.title = gui.Label(None, "Game Finished!", colours["WHITE"], 2)
-        self.continue_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Continue to Lobby", colours["GREY"], 1)
-        self.quit_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit to Main Menu", colours["GREY"], 1)
-
+        self.title = gui.Label(None, "Game Finished!", colours["WHITE"], 1.5)
+        self.continue_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Continue to Lobby", colours["GREY"], 0.8)
+        self.quit_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Quit to Main Menu", colours["GREY"], 0.8)
+        self.points_label = gui.Label(None, "Points", colours["WHITE"], 0.8)
+        self.name_label = gui.Label(None, "Name", colours["WHITE"], 0.8)
+        self.bar = gui.ProgressBar(self.screen_width*8//18, colours["LIGHT SILVER"], colours["DARK COAL"], 0.8)
 
     def run(self, return_info):
         self.drawElements(return_info)
@@ -891,28 +911,33 @@ class FinalStandings(Base):
     
     def drawElements(self, return_info):
         self.title.draw(self.surface, 0, 0)
-
-        y = 2
+        y = 1.5
         x = self.screen_width*5//18
+        self.name_label.draw(self.surface, x, self.screen_height*y//9)
         if return_info["num games"][1] > 1:
+            self.points_label.draw(self.surface, self.screen_width*13//18-self.points_label.box.width, self.screen_height*y//9)
+            y += 1
             for i, (name, points) in enumerate(return_info["total points"].items()):
-                num = gui.Label(None, str(i+1)+". ",  colours["WHITE"], 1)
-                num.draw(self.surface, x-(self.screen_width//36), self.screen_height*y//9)
-                name_label = gui.Label(None, name, colours["WHITE"], 1)
+                self.bar.draw(self.surface, x, self.screen_height*y//9, 1)
+                num = gui.Label(None, str(i+1)+". ",  colours["WHITE"], 0.8)
+                num.draw(self.surface, x-(self.screen_width//18), self.screen_height*y//9)
+                name_label = gui.Label(None, name, colours["WHITE"], 0.8)
                 name_label.draw(self.surface, x, self.screen_height*y//9)
-                point_label = gui.Label(None, str(points), colours["WHITE"], 1)
-                point_label.draw(self.surface, self.screen_width*5//8, self.screen_height*y//9)
+                point_label = gui.Label(None, str(points), colours["WHITE"], 0.8)
+                point_label.draw(self.surface, self.screen_width*13//18-point_label.box.width, self.screen_height*y//9)
                 y += 1
         else:
+            y += 1
             for i, (name) in enumerate(return_info["standings"].keys()):
-                num = gui.Label(None, str(i+1)+". ",  colours["WHITE"], 1)
-                num.draw(self.surface, x-(self.screen_width//36), self.screen_height*y//9)
-                name_label = gui.Label(None, name, colours["WHITE"], 1)
+                self.bar.draw(self.surface, x, self.screen_height*y//9, 1)
+                num = gui.Label(None, str(i+1)+". ",  colours["WHITE"], 0.8)
+                num.draw(self.surface, x-(self.screen_width//18), self.screen_height*y//9)
+                name_label = gui.Label(None, name, colours["WHITE"], 0.8)
                 name_label.draw(self.surface, x, self.screen_height*y//9)
                 y += 1
 
         self.continue_button.draw(self.surface, self.screen_width//2-self.continue_button.box.width//2, self.screen_height*(y+0.5)//9)
-        self.quit_button.draw(self.surface, self.screen_width//2-self.quit_button.box.width//2, self.screen_height*(y+2)//9)
+        self.quit_button.draw(self.surface, self.screen_width//2-self.quit_button.box.width//2, self.screen_height*(y+1.5)//9)
 
     def handleEvents(self):
         quit_requested = False

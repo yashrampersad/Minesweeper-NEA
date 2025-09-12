@@ -1,7 +1,6 @@
 import pygame
 import multiplayer
 import threading
-import random
 
 pygame.init()
 
