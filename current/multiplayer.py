@@ -188,7 +188,7 @@ class Client():
         self.return_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "names":{}, "lobbies":{}} # setting default values
         self.CLIENT_IP = socket.gethostbyname(socket.gethostname()) # get the current IP address
         self.CLIENT_PORT = random.randint(10000, 55555) # randomly generate a unique port so that other clients do not end up recieving the same messages
-        self.current_info = {"completion":0, "player":(self.CLIENT_IP, self.CLIENT_PORT), "name":""}
+        self.current_info = {"completion":0, "player":(self.CLIENT_IP, self.CLIENT_PORT), "name":"", "ready":False}
         self.SERVER_IP = None
         self.SERVER_PORT = None
         self.running = True
