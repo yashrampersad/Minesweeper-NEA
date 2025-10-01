@@ -28,7 +28,7 @@ class Host():
         self.state = "LOBBY"
         self.lobby_name = lobby_name
 
-        self.return_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "names":{}, "lobbies":{}}
+        self.return_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "names":{}, "lobbies":{}, "ready players":{}}
         self.player_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "completion":0}
         self.ready_players = {}
         self.player_names = {}
@@ -139,11 +139,13 @@ class Host():
             except socket.timeout:
                 pass
             if self.state == "LOBBY" or self.state == "STANDINGS":
+                self.return_info["ready players"] = {self.player_names[player]:value for (player, value) in self.ready_players.items()}
                 if self.state == "LOBBY":
                     self.total_points = {}
                     self.games_remaining = self.player_info["num games"][0] # update board settings and the number of games from the host
                     self.total_games = self.player_info["num games"][1]
                 if len(self.ready_players) > 0 and all(self.ready_players.values()): # if everyone is ready, start the game
+                    self.return_info["ready players"] = {self.player_names[player]:False for (player, value) in self.ready_players.items()}
                     self.standings = {}
                     self.countdown = 3.0
                     self.return_info["countdown"] = str(self.countdown)[0]
@@ -185,7 +187,7 @@ class Client():
     def __init__(self):
         self.state = "BROADCAST"
         self.connected = False
-        self.return_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "names":{}, "lobbies":{}} # setting default values
+        self.return_info = {"settings":["Beginner", [9,9], 10], "num games":[1,1], "names":{}, "lobbies":{}, "ready players":{}} # setting default values
         self.CLIENT_IP = socket.gethostbyname(socket.gethostname()) # get the current IP address
         self.CLIENT_PORT = random.randint(10000, 55555) # randomly generate a unique port so that other clients do not end up recieving the same messages
         self.current_info = {"completion":0, "player":(self.CLIENT_IP, self.CLIENT_PORT), "name":"", "ready":False}
@@ -236,9 +238,9 @@ class Client():
 
     def requestLobby(self, server_addr):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        while not self.connected:
+        for i in range(3):
             sock.sendto(json.dumps(("REQUEST", self.CLIENT_PORT),).encode(), server_addr) # send a request to that specific server
-            sock.settimeout(2.0)
+            sock.settimeout(1.0)
             try:
                 try:
                     data, addr = sock.recvfrom(1024)

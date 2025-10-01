@@ -133,7 +133,6 @@ class InputBox(Button): # for the user to input text
                 self.highlighted = False
 
         elif self.activated:
-            keys = pygame.key.get_pressed()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_BACKSPACE:
                     self.current_text = self.current_text[:-1]
@@ -225,9 +224,9 @@ def loadResources(square_width):
     global square_font
     square_font = pygame.font.SysFont("arial", round((square_width/5)*4), bold=True)
     global flag
-    flag = pygame.transform.smoothscale(pygame.image.load("current/flag.png").convert_alpha(), (square_width, square_width))
+    flag = pygame.transform.smoothscale(pygame.image.load("flag.png").convert_alpha(), (square_width, square_width))
     global mine
-    mine = pygame.transform.smoothscale(pygame.image.load("current/mine.png").convert_alpha(), (square_width, square_width))
+    mine = pygame.transform.smoothscale(pygame.image.load("mine.png").convert_alpha(), (square_width, square_width))
 
 def setScale(GLOBAL_SCALE):
     global global_scale

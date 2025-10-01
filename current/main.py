@@ -61,7 +61,8 @@ return_info = {
     "lobbies":{},
     "settings":["Beginner", [9,9], 10], 
     "num games":[1,1],
-    "names":{}
+    "names":{},
+    "ready players":{}
 }
 
 title_screen = scr.MainMenu(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)

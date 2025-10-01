@@ -55,7 +55,7 @@ class InitialScale(Base):
                 gui.setScale(self.global_scale)
             if self.done_button.isClicked(event):
                 state = "MAIN"
-            elif event.type == pygame.QUIT:
+            elif event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 return "QUIT"
         return state, self.global_scale
 
@@ -131,7 +131,7 @@ class MainMenu(Base):
                     is_host = False
                 if self.quit.isClicked(event):
                     quit_requested = True
-                if event.type == pygame.QUIT:
+                if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                     quit_requested = True
             # if nothing is pressed, remain in the current state/screen
 
@@ -142,6 +142,7 @@ class FindingLobbies(Base):
         super().__init__(surface, screen_width, screen_height, global_scale)
         self.title = gui.Label(colours["GREY"], "Available Lobbies", colours["WHITE"], 1.5)
         self.back_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Back", colours["GREY"], 0.8)
+        # self.error_message = gui.Label(None, "Lobby not available. Please try again later.", colours["WHITE"], 0.6)
         self.drawn_lobbies = {}
         self.lobby_dict = {}
     
@@ -174,7 +175,7 @@ class FindingLobbies(Base):
             if self.back_button.isClicked(event):
                 quit_requested = True
 
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 quit_requested = True
         return quit_requested, chosen_lobby
     
@@ -226,6 +227,8 @@ class ClientLobby(Base):
         self.board_difficulty_label = gui.Label(colours["WHITE"], self.board_difficulty, colours["GREY"], 0.6)
 
         self.ready_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Ready up!", colours["GREY"], 0.8)
+        self.waiting_label = gui.Label(None, "Waiting to start...", colours["WHITE"], 0.8)
+        self.ready_label = gui.Label(None, "Ready", colours["LIGHT SILVER"], 0.6)
 
     def run(self, return_info):
         if not self.show_final_standings:
@@ -250,7 +253,6 @@ class ClientLobby(Base):
         self.board_height.text = str(self.board_dimensions[0])
         self.board_width.text = str(self.board_dimensions[1])
         self.num_mines_label.text = str(self.num_mines)
-        # self.flag_count.text = str(self.num_mines)
         self.num_games_label.text = str(self.num_games)
 
         # self.time_label.draw(self.surface, (self.screen_width//2)-50-self.time_label.box.width, self.screen_height//18)
@@ -291,14 +293,27 @@ class ClientLobby(Base):
         y = 5
         x = 20
         self.own_player_name_box.draw(self.surface, x, self.screen_height*y//16)
+        try:
+            if return_info["ready players"][self.own_player_name] == True:
+                self.ready_label.draw(self.surface, x+self.own_player_name_box.box.width, self.screen_height*y//16)
+        except KeyError:
+            pass
         y += 1
         self.player_name_prompt.draw(self.surface, x, self.screen_height*y//16)
         y += 1
         for player_label in self.player_labels:
             player_label.draw(self.surface, x, self.screen_height*y//16)
+            try:
+                if return_info["ready players"][player_label.text] == True:
+                    self.ready_label.draw(self.surface, x+player_label.box.width, self.screen_height*y//16)
+            except KeyError:
+                pass
             y += 1.5
 
-        self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
+        if self.ready:
+            self.waiting_label.draw(self.surface, self.screen_width//2-self.waiting_label.box.width//2, self.screen_height-self.ready_button.box.height-10)
+        else:
+            self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
 
         # update from return info
         self.board_difficulty = return_info["settings"][0]
@@ -357,13 +372,12 @@ class ClientLobby(Base):
             if not self.ready:
                 if self.ready_button.isClicked(event):
                     self.ready = True
-                    self.ready_button.highlighted = True
             self.current_info["ready"] = self.ready
 
             if self.quit_button.isClicked(event):
                 quit_requested = True
 
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 quit_requested = True
         return quit_requested, self.current_info
     
@@ -415,6 +429,8 @@ class HostLobby(Base):
         self.board_dimension_prompt = gui.Label(None, "click to change size and mines", colours["WHITE"], 0.4)
 
         self.ready_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Ready up!", colours["GREY"], 0.8)
+        self.waiting_label = gui.Label(None, "Waiting to start...", colours["WHITE"], 0.8)
+        self.ready_label = gui.Label(None, "Ready", colours["LIGHT SILVER"], 0.6)
 
     def run(self, return_info):
         if not self.show_final_standings:
@@ -473,14 +489,26 @@ class HostLobby(Base):
         y = 5
         x = 20
         self.own_player_name_box.draw(self.surface, x, self.screen_height*y//16)
+        try:
+            if return_info["ready players"][self.own_player_name] == True:
+                self.ready_label.draw(self.surface, x+self.own_player_name_box.box.width, self.screen_height*y//16)
+        except KeyError:
+            pass
         y += 1
         self.player_name_prompt.draw(self.surface, x, self.screen_height*y//16)
         y += 1
         for player_label in self.player_labels:
             player_label.draw(self.surface, x, self.screen_height*y//16)
+            try:
+                if return_info["ready players"][player_label.text] == True:
+                    self.ready_label.draw(self.surface, x+player_label.box.width, self.screen_height*y//16)
+            except KeyError:
+                pass
             y += 1.5
-
-        self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
+        if self.ready:
+            self.waiting_label.draw(self.surface, self.screen_width//2-self.waiting_label.box.width//2, self.screen_height-self.ready_button.box.height-10)
+        else:
+            self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
 
     def setBoard(self):
         # self.board_squares is a list of all the UISquares so that the class can keep track of all of them
@@ -603,13 +631,12 @@ class HostLobby(Base):
             if not self.ready:
                 if self.ready_button.isClicked(event):
                     self.ready = True
-                    self.ready_button.highlighted = True
             self.current_info["ready"] = self.ready
 
             if self.quit_button.isClicked(event):
                 quit_requested = True
 
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 quit_requested = True
 
         return quit_requested, self.current_info
@@ -675,6 +702,9 @@ class Game(Base):
         self.ready_button = gui.Button(colours["WHITE"], colours["LIGHT SILVER"], "Ready up!", colours["GREY"], 0.8)
         self.standings_label = gui.Label(None, "Name", colours["WHITE"], 0.6)
         self.points_label = gui.Label(None, "Overall points", colours["WHITE"], 0.6)
+
+        self.ready_label = gui.Label(None, "Ready", colours["LIGHT COAL"], 0.6)
+        self.waiting_label = gui.Label(None, "Waiting to start...", colours["WHITE"], 0.8)
         
     def run(self, return_info):
         self.board_dimensions = return_info["settings"][1]
@@ -768,7 +798,10 @@ class Game(Base):
         if self.show_standings:
             self.sort_by_label.draw(self.surface, x, self.screen_height*3//16)
             self.sort_by_button.draw(self.surface, x+self.sort_by_label.box.width+10, self.screen_height*3//16)
-            self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
+            if self.ready:
+                self.waiting_label.draw(self.surface, self.screen_width//2-self.waiting_label.box.width//2, self.screen_height-self.ready_button.box.height-10)
+            else:
+                self.ready_button.draw(self.surface, self.screen_width//2-self.ready_button.box.width//2, self.screen_height-self.ready_button.box.height-10)
             self.standings_label.draw(self.surface, x, self.screen_height*4//16)
             self.points_label.draw(self.surface, x+max_width-self.points_label.box.width, self.screen_height*4//16)
             y = 5
@@ -778,6 +811,11 @@ class Game(Base):
                     points.draw(self.surface, self.screen_width//30+max_width-points.box.width, self.screen_height*y//16)
                     name = gui.Label(None, name, colours["WHITE"], 0.6)
                     name.draw(self.surface, x, self.screen_height*y//16)
+                    try:
+                        if return_info["ready players"][name.text] == True:
+                            self.ready_label.draw(self.surface, x+name.box.width, self.screen_height*y//16)
+                    except KeyError:
+                        pass
                     y += 1.5
             elif self.sort_standings_by == "Overall points":
                 for name, points in return_info["total points"].items():
@@ -785,6 +823,11 @@ class Game(Base):
                     points.draw(self.surface, self.screen_width//30+max_width-points.box.width, self.screen_height*y//16)
                     name = gui.Label(None, name, colours["WHITE"], 0.6)
                     name.draw(self.surface, x, self.screen_height*y//16)
+                    try:
+                        if return_info["ready players"][name.text] == True:
+                            self.ready_label.draw(self.surface, x+name.box.width, self.screen_height*y//16)
+                    except KeyError:
+                        pass
                     y += 1.5
         else:
             while True:
@@ -852,6 +895,7 @@ class Game(Base):
                                 game.generateNumbers(self.board)
                                 self.first_click = False
                         self.game_result, self.remaining_flags, self.completion = game.performClick(self.board, result[0], result[1], self.num_mines)
+                        self.flag_count.text = str(self.remaining_flags)
                         self.total_clicks += 1
             elif self.game_result == 1:
                 if self.show_standings:
@@ -889,7 +933,7 @@ class Game(Base):
         
             if self.quit_button.isClicked(event):
                 quit_requested = True
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 quit_requested = True
 
         return quit_requested, self.current_info
@@ -948,6 +992,6 @@ class FinalStandings(Base):
             if self.quit_button.isClicked(event):
                 quit_requested = True
 
-            if event.type == pygame.QUIT:
+            if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
                 quit_requested = True
         return cont, quit_requested, {}
