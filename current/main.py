@@ -8,10 +8,10 @@ SCREEN_WIDTH = 1800
 SCREEN_HEIGHT = 900
 global_scale = 0.6
 
-screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
-# screen = pygame.display.set_mode((1920,1080), pygame.FULLSCREEN | pygame.SCALED)
-# SCREEN_WIDTH, SCREEN_HEIGHT = pygame.display.get_surface().get_size()
-# global_scale = SCREEN_WIDTH // 1800
+# screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
+screen = pygame.display.set_mode((1920,1080), pygame.FULLSCREEN | pygame.SCALED)
+SCREEN_WIDTH, SCREEN_HEIGHT = pygame.display.get_surface().get_size()
+global_scale = SCREEN_WIDTH // 1800
 
 import screens as scr
 
@@ -31,25 +31,25 @@ clock = pygame.time.Clock()
 
 running = True
 
-scale_screen = scr.InitialScale(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)  
+# scale_screen = scr.InitialScale(screen, SCREEN_WIDTH, SCREEN_HEIGHT, global_scale)  
 
-state = "SCALE"
+# state = "SCALE"
 
-set_scale = True
-while set_scale:
-    screen.fill(colours["GREY"])
-    if state == "SCALE":
-        state, new_scale = scale_screen.run()
-        if new_scale != global_scale:
-            global_scale = new_scale
-            screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
-    elif state == "MAIN":
-        set_scale = False
-    elif state == "QUIT":
-        set_scale = False
-        running = False
+# set_scale = True
+# while set_scale:
+#     screen.fill(colours["GREY"])
+#     if state == "SCALE":
+#         state, new_scale = scale_screen.run()
+#         if new_scale != global_scale:
+#             global_scale = new_scale
+#             screen = pygame.display.set_mode((SCREEN_WIDTH*global_scale, SCREEN_HEIGHT*global_scale))
+#     elif state == "MAIN":
+#         set_scale = False
+#     elif state == "QUIT":
+#         set_scale = False
+#         running = False
 
-    pygame.display.update()
+#     pygame.display.update()
 
 # set default current and return info
 current_info = {

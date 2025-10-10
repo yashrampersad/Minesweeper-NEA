@@ -245,7 +245,7 @@ class Client():
                 try:
                     data, addr = sock.recvfrom(1024)
                 except ConnectionResetError:
-                    time.sleep(3)
+                    time.sleep(2)
                     continue # if no host is found, resend the request
                 if data == b"Adding to lobby":
                     sock.close()

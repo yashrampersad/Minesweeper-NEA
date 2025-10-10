@@ -368,7 +368,6 @@ class ClientLobby(Base):
                 else:
                     self.own_player_name_box.reset(self.own_player_name_box.default_text)
                     self.player_name_prompt.text = "invalid name"
-
             if not self.ready:
                 if self.ready_button.isClicked(event):
                     self.ready = True
